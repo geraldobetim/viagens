@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<link rel="manifest" href="manifest_viagens.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Viagens">
+<meta name="theme-color" content="#0d2525">
+<title>Gestão de Viagens</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0d2525;--bg2:#163535;--bg3:#1e4040;--bg4:#244a4a;--tl:#2dd4b0;--tl2:#0d6e5a;--rd:#e05555;--am:#e8a020;--tx:#f0f0f0;--tx2:#a8c4c0;--tx3:#6a9a94;--cd:#1a3c3c;--cd2:#1f4545;--br:#2a5050;--r:14px;--rs:10px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--tx);max-width:420px;margin:0 auto;min-height:100vh;-webkit-tap-highlight-color:transparent}
+.sc{display:none;min-height:100vh;padding-bottom:90px}.sc.active{display:block}
+/* TOPBAR */
+.topb{padding:16px 20px 10px;display:flex;justify-content:space-between;align-items:center}
+.topb-t{font-size:21px;font-weight:700}
+/* NAV */
+.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:420px;background:var(--bg2);border-top:0.5px solid var(--br);display:flex;z-index:200}
+.nb{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 2px 16px;cursor:pointer;gap:3px;border:none;background:none}
+.nb span{font-size:10px;color:var(--tx3);font-weight:500}
+.nb svg{width:21px;height:21px;stroke:var(--tx3);fill:none;stroke-width:1.8}
+.nb.on span{color:var(--tl)}.nb.on svg{stroke:var(--tl)}
+/* FAB */
+.fab{position:fixed;bottom:86px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:388px;background:var(--tl);border:none;border-radius:28px;padding:14px;color:#0d2525;font-size:15px;font-weight:700;cursor:pointer;z-index:190;box-shadow:0 4px 18px rgba(45,212,176,.3)}
+/* CARDS */
+.card{background:var(--cd);border-radius:var(--r);margin:0 16px 10px;padding:14px}
+.card-ativa{background:var(--bg3);border-radius:var(--r);margin:0 16px 10px;padding:14px;border-left:3px solid var(--tl)}
+.ca-status{font-size:11px;color:var(--tl);font-weight:600;margin-bottom:4px}
+.ca-rota{font-size:17px;font-weight:700;margin-bottom:3px}
+.ca-data{font-size:12px;color:var(--tx3)}
+.ca-row{display:flex;justify-content:space-between;align-items:center}
+.ca-btn{background:var(--tl);border:none;border-radius:20px;padding:7px 14px;color:#0d2525;font-size:12px;font-weight:700;cursor:pointer}
+/* VIAGEM CARD */
+.vc-rota{font-size:15px;font-weight:700;margin-bottom:4px}
+.vc-data{font-size:12px;color:var(--tx3);margin-bottom:10px}
+.vc-tags{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.vc-tag{background:var(--bg3);border-radius:8px;padding:8px;text-align:center}
+.vc-tl{font-size:10px;color:var(--tx3);margin-bottom:2px}
+.vc-tv{font-size:12px;font-weight:700}.vc-tv.g{color:var(--tl)}.vc-tv.r{color:var(--rd)}
+/* SEÇÃO */
+.sec-lbl{font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;padding:12px 16px 5px}
+/* FRETE ITEM */
+.fi{background:var(--cd);border-radius:var(--rs);margin:0 16px 8px;padding:12px 14px}
+.fi-rota{font-size:14px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.fi-info{font-size:12px;color:var(--tx3)}
+.fi-val{font-size:14px;font-weight:700;color:var(--tl);margin-top:4px}
+/* DESPESA ITEM AGRUPADO */
+.di{background:var(--cd);border-radius:var(--rs);margin:0 16px 8px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between}
+.di-l{flex:1}
+.di-tipo{font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px}
+.di-sub{font-size:11px;color:var(--tx3);margin-top:2px}
+.di-val{font-size:15px;font-weight:700;color:var(--rd)}
+/* RESUMO */
+.resumo{background:var(--cd);border-radius:var(--r);margin:0 16px 10px;overflow:hidden}
+.rr{display:flex;justify-content:space-between;align-items:center;padding:13px 14px;border-bottom:0.5px solid var(--br)}
+.rr:last-child{border-bottom:none;background:var(--tl2)}
+.rr:last-child .rrl{color:var(--tl);font-weight:700}
+.rr:last-child .rrv{color:var(--tl);font-weight:700;font-size:17px}
+.rrl{font-size:13px;color:var(--tx2)}
+.rrv{font-size:14px;font-weight:600}
+.rrv.g{color:var(--tl)}.rrv.r{color:var(--rd)}
+/* INDICADORES */
+.ind{background:var(--cd);border-radius:var(--r);margin:0 16px 10px;overflow:hidden}
+.ir{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:0.5px solid var(--br)}
+.ir:last-child{border-bottom:none}
+.irl{font-size:13px;color:var(--tx2)}
+.irv{font-size:13px;font-weight:700;color:var(--tx)}
+.irv.tl{color:var(--tl)}
+/* RESULTADO TAG */
+.resultado-tag{margin:0 16px 10px;border-radius:var(--r);padding:14px 16px;display:flex;align-items:center;gap:10px}
+.rt-lucro{background:rgba(45,212,176,.12);border:1px solid var(--tl2)}
+.rt-prejuizo{background:rgba(224,85,85,.12);border:1px solid var(--rd)}
+.rt-icon{font-size:24px}
+.rt-info{flex:1}
+.rt-lbl{font-size:12px;color:var(--tx3);margin-bottom:2px}
+.rt-val{font-size:20px;font-weight:700}
+.rt-val.g{color:var(--tl)}.rt-val.r{color:var(--rd)}
+/* RELATÓRIO CATEGORIA */
+.rcat{background:var(--cd);border-radius:var(--rs);margin:0 16px 8px;padding:12px 14px}
+.rcat-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.rcat-nome{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px}
+.rcat-val{font-size:14px;font-weight:700;color:var(--rd)}
+.rcat-bar-wrap{height:5px;background:var(--bg4);border-radius:3px;overflow:hidden}
+.rcat-bar{height:100%;border-radius:3px;background:var(--rd)}
+.rcat-pct{font-size:11px;color:var(--tx3);margin-top:3px}
+/* MODAIS */
+.mbg{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:300;display:none;align-items:flex-end;justify-content:center}
+.mbg.open{display:flex}
+.modal{background:var(--bg2);border-radius:20px 20px 0 0;padding:22px 18px 32px;width:100%;max-width:420px;max-height:92vh;overflow-y:auto}
+.mh{width:36px;height:4px;background:var(--br);border-radius:2px;margin:0 auto 18px}
+.mh-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.mt{font-size:17px;font-weight:700}
+.mx{background:none;border:none;color:var(--tl);font-size:22px;cursor:pointer;font-weight:700;padding:2px 6px}
+.fld{margin-bottom:13px}
+.fld label{display:block;font-size:12px;color:var(--tx2);margin-bottom:5px;font-weight:500}
+.fld input,.fld select,.fld textarea{width:100%;background:var(--bg3);border:0.5px solid var(--br);border-radius:var(--rs);padding:12px 13px;color:var(--tx);font-size:15px;outline:none;-webkit-appearance:none}
+.fld input:focus,.fld select:focus,.fld textarea:focus{border-color:var(--tl)}
+.fld select option{background:var(--bg2)}
+.fld textarea{border-radius:var(--rs);resize:none;height:70px}
+.fr2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.bok{width:100%;background:var(--tl);border:none;border-radius:var(--rs);padding:14px;color:#0d2525;font-size:15px;font-weight:700;cursor:pointer;margin-top:6px}
+.bca{background:none;border:none;color:var(--tl);font-size:14px;cursor:pointer;padding:12px}
+.btn-row{display:flex;align-items:center;justify-content:space-between;margin-top:4px}
+.btn-del{background:none;border:none;color:var(--rd);cursor:pointer;font-size:18px;padding:4px 8px}
+/* LOC */
+.loc-box{background:var(--bg3);border-radius:var(--r);padding:4px 14px;margin-bottom:14px}
+.loc-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:0.5px solid var(--br)}
+.loc-row:last-child{border-bottom:none}
+.loc-ic{color:var(--tx3);font-size:16px;flex-shrink:0}
+.loc-info{flex:1}
+.loc-lbl{font-size:11px;color:var(--tx3);margin-bottom:2px}
+.loc-val{font-size:14px;font-weight:600;color:var(--tl);cursor:pointer}
+.loc-val.vz{color:var(--tx3);font-weight:400;font-style:italic}
+/* BUSCA */
+.bc-res{background:var(--bg3);border-radius:var(--rs);padding:8px 0;margin-top:6px}
+.bc-item{padding:11px 14px;font-size:14px;font-weight:500;color:var(--tl);cursor:pointer;border-bottom:0.5px solid var(--br)}
+.bc-item:last-child{border-bottom:none}
+.bc-lbl{font-size:11px;color:var(--tx3);padding:8px 14px 4px}
+/* LINK */
+.link-novo{text-align:center;color:var(--tl);font-size:14px;font-weight:600;cursor:pointer;padding:12px;display:block}
+/* EMPTY */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 30px;text-align:center}
+.empty-ic{font-size:64px;opacity:.2;margin-bottom:16px}
+.empty-tx{font-size:16px;color:var(--tx3);line-height:1.5}
+/* PERIODO FILTER */
+.pf-row{display:flex;gap:8px;margin:0 16px 12px;flex-wrap:wrap}
+.pf-pill{padding:7px 14px;border:1.5px solid var(--br);border-radius:20px;font-size:12px;font-weight:600;color:var(--tx3);background:none;cursor:pointer}
+.pf-pill.on{border-color:var(--tl);color:var(--tl);background:rgba(45,212,176,.08)}
+</style>
+</head>
+<body>
+
+<!-- VIAGENS -->
+<div id="s-viagens" class="sc active">
+  <div class="topb">
+    <div class="topb-t">🚛 Minhas Viagens</div>
+    <button onclick="G('relatorio')" style="background:none;border:none;color:var(--tl);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px">
+      <svg style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+      Relatório
+    </button>
+  </div>
+  <div id="card-ativa"></div>
+  <div id="lista-viagens">
+    <div class="empty"><div class="empty-ic">🛣️</div><div class="empty-tx">Você ainda não adicionou uma viagem.</div></div>
+  </div>
+  <button class="fab" onclick="novaViagem()">+ Nova Viagem</button>
+</div>
+
+<!-- RELATÓRIO -->
+<div id="s-relatorio" class="sc">
+  <div class="topb">
+    <div class="topb-t">📊 Relatório</div>
+    <button onclick="G('viagens')" style="background:none;border:none;color:var(--tl);font-size:13px;font-weight:600;cursor:pointer">← Voltar</button>
+  </div>
+  <div class="pf-row" id="pf-pills"></div>
+  <div id="rel-content"></div>
+</div>
+
+<!-- OPÇÕES -->
+<div id="s-opcoes" class="sc">
+  <div class="topb"><div class="topb-t">⚙️ Opções</div></div>
+  <div class="sec-lbl">Veículo</div>
+  <div class="card">
+    <div style="font-size:14px;color:var(--tx2);margin-bottom:4px">Ducato · ODE3E43</div>
+    <div style="font-size:13px;color:var(--tx3)">Consumo padrão: 10 km/L · Diesel</div>
+  </div>
+  <div class="sec-lbl">Tarifa</div>
+  <div class="card">
+    <div style="font-size:14px;color:var(--tx2)">R$ 1,80 por km rodado</div>
+  </div>
+</div>
+
+<!-- NAV -->
+<div class="bnav">
+  <button class="nb on" id="nb-viagens" onclick="G('viagens')">
+    <svg viewBox="0 0 24 24"><path d="M3 17l3-10 4 6 3-4 4 8"/><path d="M3 20h18"/></svg><span>Viagens</span>
+  </button>
+  <button class="nb" id="nb-relatorio" onclick="G('relatorio')">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg><span>Relatório</span>
+  </button>
+  <button class="nb" id="nb-opcoes" onclick="G('opcoes')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg><span>Opções</span>
+  </button>
+</div>
+
+<!-- MODAL DADOS DO FRETE -->
+<div class="mbg" id="mFrete">
+<div class="modal">
+  <div class="mh"></div>
+  <div class="mh-row"><div class="mt">Dados do Frete</div><button class="mx" onclick="fM('mFrete')">✕</button></div>
+  <div class="loc-box">
+    <div class="loc-row">
+      <div class="loc-ic">📍</div>
+      <div class="loc-info"><div class="loc-lbl">Origem</div><div class="loc-val vz" id="f-orig-val" onclick="abrirBC('origem')">Toque para incluir</div></div>
+    </div>
+    <div class="loc-row">
+      <div class="loc-ic">🏁</div>
+      <div class="loc-info"><div class="loc-lbl">Destino</div><div class="loc-val vz" id="f-dest-val" onclick="abrirBC('destino')">Toque para incluir</div></div>
+    </div>
+  </div>
+  <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">📦 Carga</div>
+  <div class="fr2">
+    <div class="fld"><label>Tipo de carga</label><input type="text" id="f-carga" placeholder="Ex: Paletes"></div>
+    <div class="fld"><label>Peso (Kg)</label><input type="number" id="f-peso" placeholder="0" min="0" step="0.1"></div>
+  </div>
+  <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">💲 Valores</div>
+  <div class="fld"><label>Valor do Frete (R$)</label><input type="number" id="f-valor" placeholder="0,00" min="0" step="0.01"></div>
+  <div class="fld"><label>Data</label><input type="date" id="f-data"></div>
+  <div id="f-obs-wrap" style="display:none"><div class="fld"><label>Observação</label><textarea id="f-obs" placeholder="Anotações..."></textarea></div></div>
+  <div id="f-obs-link" style="color:var(--tl);font-size:13px;font-weight:600;cursor:pointer;margin-bottom:14px" onclick="document.getElementById('f-obs-wrap').style.display='block';this.style.display='none'">+ Observação</div>
+  <div class="btn-row"><button class="bca" onclick="fM('mFrete')">Cancelar</button><button class="bok" style="width:auto;padding:13px 28px" onclick="salvarFrete()">Salvar</button></div>
+</div>
+</div>
+
+<!-- MODAL BUSCA CIDADE -->
+<div class="mbg" id="mBC">
+<div class="modal">
+  <div class="mh"></div>
+  <div class="mh-row"><div class="mt" id="bc-titulo">Buscar Origem</div><button class="mx" onclick="voltarParaFrete()">✕</button></div>
+  <div class="fld"><input type="text" id="bc-input" placeholder="Digite a cidade..." oninput="buscarC()" autocomplete="off" style="font-size:16px"></div>
+  <div id="bc-res"></div>
+</div>
+</div>
+
+<!-- MODAL DADOS DA VIAGEM -->
+<div class="mbg" id="mViagem">
+<div class="modal">
+  <div class="mh"></div>
+  <div class="mh-row">
+    <div class="mt">Dados da Viagem</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn-del" onclick="deletarViagemAtual()">🗑</button>
+      <button class="mx" onclick="fM('mViagem')">✕</button>
+    </div>
+  </div>
+  <!-- FRETES -->
+  <div style="font-size:12px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Fretes</div>
+  <div id="mv-fretes"></div>
+  <div class="link-novo" onclick="adicionarFrete()">+ Novo frete</div>
+  <!-- DESPESAS -->
+  <div id="mv-despesas-sec" style="display:none">
+    <div style="font-size:12px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Despesas</div>
+    <div id="mv-despesas"></div>
+  </div>
+  <!-- RESUMO -->
+  <div style="font-size:12px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px">Resumo da viagem</div>
+  <div class="resumo" style="margin:0 0 10px">
+    <div class="rr"><span class="rrl">Valor total do frete</span><span class="rrv g" id="mv-tf">R$ 0,00</span></div>
+    <div class="rr"><span class="rrl">Valor total das despesas</span><span class="rrv r" id="mv-td">R$ 0,00</span></div>
+    <div class="rr"><span class="rrl">Saldo líquido da viagem</span><span class="rrv" id="mv-sl">R$ 0,00</span></div>
+  </div>
+  <!-- INDICADORES -->
+  <div style="font-size:12px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Indicadores</div>
+  <div class="ind" style="margin:0 0 14px">
+    <div class="ir"><span class="irl">Leitura inicial odômetro</span><span class="irv tl" id="ind-odo-i">—</span></div>
+    <div class="ir"><span class="irl">Leitura final odômetro</span><span class="irv" id="ind-odo-f">—</span></div>
+    <div class="ir"><span class="irl">Km total percorrida</span><span class="irv" id="ind-km">—</span></div>
+    <div class="ir"><span class="irl">Litros de combustível</span><span class="irv" id="ind-litros">—</span></div>
+    <div class="ir"><span class="irl">Média Km/L</span><span class="irv" id="ind-media">—</span></div>
+    <div class="ir"><span class="irl">Preço médio do Diesel</span><span class="irv" id="ind-preco-d">—</span></div>
+    <div class="ir"><span class="irl">Valor do Diesel por Km</span><span class="irv" id="ind-diesel-km">—</span></div>
+    <div class="ir"><span class="irl">Valor do frete por Km rodado</span><span class="irv" id="ind-frete-km">—</span></div>
+    <div class="ir"><span class="irl">% lucro em relação ao frete bruto</span><span class="irv" id="ind-pct">—</span></div>
+    <div class="ir"><span class="irl">Lucro líquido por Km</span><span class="irv" id="ind-liq-km">—</span></div>
+  </div>
+  <div class="btn-row">
+    <button class="bca" onclick="abrirFinalizar()" id="btn-finalizar">Finalizar</button>
+    <button class="bok" style="width:auto;padding:13px 22px" onclick="abrirDespesa()">+ Nova Despesa</button>
+  </div>
+</div>
+</div>
+
+<!-- MODAL INICIAR VIAGEM -->
+<div class="mbg" id="mIniciar">
+<div class="modal">
+  <div class="mh"></div>
+  <div class="mh-row"><div class="mt">Iniciar Viagem</div><button class="mx" onclick="fM('mIniciar')">✕</button></div>
+  <div class="fld"><label>Leitura odômetro de saída (Km)</label><input type="number" id="odo-saida" placeholder="Ex: 14000" min="0"></div>
+  <button class="bok" onclick="iniciarViagem()">Iniciar</button>
+</div>
+</div>
+
+<!-- MODAL FINALIZAR -->
+<div class="mbg" id="mFinalizar">
+<div class="modal">
+  <div class="mh"></div>
+  <div class="mh-row"><div class="mt">Finalizar Viagem</div><button class="mx" onclick="fM('mFinalizar')">✕</button></div>
+  <div class="fld"><label>Leitura odômetro de chegada (Km)</label><input type="number" id="odo-chegada" placeholder="Ex: 16000" min="0" oninput="prevFinalizar()"></div>
+  <div id="fin-prev" style="margin-bottom:12px"></div>
+  <button class="bok" onclick="finalizarViagem()">Confirmar finalização</button>
+</div>
+</div>
+
+<!-- MODAL DESPESA -->
+<div class="mbg" id="mDespesa">
+<div class="modal">
+  <div class="mh"></div>
+  <div class="mh-row"><div class="mt">Nova Despesa</div><button class="mx" onclick="fM('mDespesa')">✕</button></div>
+  <div class="fld">
+    <label>Tipo de despesa</label>
+    <select id="d-tipo" onchange="updTipo()">
+      <option value="">Selecione</option>
+      <option value="Abastecimento">⛽ Abastecimento</option>
+      <option value="Alimentação">🍽️ Alimentação</option>
+      <option value="Pedágio">🛣️ Pedágio</option>
+      <option value="Manutenção">🔧 Manutenção</option>
+      <option value="Agenciamento">🤝 Agenciamento</option>
+      <option value="Diversos">📦 Diversos</option>
+    </select>
+  </div>
+  <div id="d-abast" style="display:none">
+    <div class="fr2">
+      <div class="fld"><label>Litros</label><input type="number" id="d-litros" placeholder="0,00" min="0" step="0.01" oninput="calcAbast()"></div>
+      <div class="fld"><label>Preço/L (R$)</label><input type="number" id="d-preco-l" placeholder="0,00" min="0" step="0.01" oninput="calcAbast()"></div>
+    </div>
+  </div>
+  <div class="fld"><label>Valor (R$)</label><input type="number" id="d-valor" placeholder="0,00" min="0" step="0.01"></div>
+  <div class="fld"><label>Data</label><input type="date" id="d-data"></div>
+  <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Outros dados</div>
+  <div class="fld"><label>Nome do estabelecimento</label><input type="text" id="d-estab" placeholder="Ex: Posto BR, Restaurante..."></div>
+  <div class="fld"><label>Cidade</label><input type="text" id="d-cidade" placeholder="Ex: Catalão, GO"></div>
+  <div id="d-obs-wrap" style="display:none"><div class="fld"><label>Observação</label><textarea id="d-obs" placeholder="Anotações..."></textarea></div></div>
+  <div id="d-obs-link" style="color:var(--tl);font-size:13px;font-weight:600;cursor:pointer;margin-bottom:14px" onclick="document.getElementById('d-obs-wrap').style.display='block';this.style.display='none'">+ Observação</div>
+  <div class="btn-row"><button class="bca" onclick="fM('mDespesa')">Cancelar</button><button class="bok" style="width:auto;padding:13px 28px" onclick="salvarDespesa()">Salvar</button></div>
+</div>
+</div>
+
+<script>
+const SK='viagens_geraldo_v1';
+let D={viagens:[]};
+let vAtual=null;
+let fOrig='',fDest='';
+let bcTipo='origem';
+let relPeriodo='mes';
+
+const CIDADES=['Belo Horizonte, MG','Betim, MG','Itapoã - BH, MG','Contagem, MG','Catalão, GO','Goiânia, GO','Anápolis, GO','Brasília, DF','São Paulo, SP','Uberlândia, MG','Uberaba, MG','Montes Claros, MG','Ribeirão Preto, SP','Aparecida de Goiânia, GO'];
+const TIPOS_IC={'Abastecimento':'⛽','Alimentação':'🍽️','Pedágio':'🛣️','Manutenção':'🔧','Agenciamento':'🤝','Diversos':'📦'};
+
+const fmt=v=>'R$ '+Math.abs(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtN=v=>v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
+const fM=id=>document.getElementById(id).classList.remove('open');
+const hj=()=>new Date().toISOString().split('T')[0];
+const save=()=>{try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}};
+
+function load(){
+  try{const r=localStorage.getItem(SK);if(r){const d=JSON.parse(r);D=Object.assign({viagens:[]},d);}}catch(e){}
+  render();
+}
+
+function G(p){
+  document.querySelectorAll('.sc').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(n=>n.classList.remove('on'));
+  document.getElementById('s-'+p).classList.add('active');
+  document.getElementById('nb-'+p)?.classList.add('on');
+  if(p==='viagens')render();
+  if(p==='relatorio')renderRel();
+}
+
+function render(){
+  const ativa=D.viagens.find(v=>v.status==='ativa');
+  const ca=document.getElementById('card-ativa');
+  if(ativa){
+    const orig=ativa.fretes[0]?.origem||'—';
+    const dest=ativa.fretes[ativa.fretes.length-1]?.destino||'—';
+    ca.innerHTML=`
+      <div class="sec-lbl">Em Andamento</div>
+      <div class="card-ativa" onclick="abrirViagemModal('${ativa.id}')">
+        <div class="ca-row">
+          <div class="ca-left">
+            <div class="ca-status">🟢 Em andamento</div>
+            <div class="ca-rota">${orig.split(',')[0]} → ${dest.split(',')[0]}</div>
+            <div class="ca-data">Início: ${new Date(ativa.dtInicio+'T12:00:00').toLocaleDateString('pt-BR')}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+            <button class="ca-btn" onclick="event.stopPropagation();abrirViagemModal('${ativa.id}')">Ver detalhes</button>
+          </div>
+        </div>
+      </div>`;
+  } else ca.innerHTML='';
+
+  const fin=D.viagens.filter(v=>v.status==='finalizada').sort((a,b)=>new Date(b.dtInicio)-new Date(a.dtInicio));
+  const el=document.getElementById('lista-viagens');
+  const rascunho=D.viagens.find(v=>v.status==='rascunho');
+
+  let h='';
+  if(rascunho){
+    h+=`<div class="sec-lbl">Rascunho</div>
+    <div class="card" style="border-left:3px solid var(--am)" onclick="abrirViagemModal('${rascunho.id}')">
+      <div style="font-size:13px;color:var(--am);font-weight:600;margin-bottom:4px">⏸ Rascunho</div>
+      <div class="vc-rota">${rascunho.fretes.length} frete(s) cadastrado(s)</div>
+      <div style="font-size:12px;color:var(--tx3)">Toque para continuar</div>
+    </div>`;
+  }
+
+  if(fin.length){
+    h+=`<div class="sec-lbl">Viagens finalizadas</div>`;
+    h+=fin.map(v=>{
+      const tf=v.fretes.reduce((s,f)=>s+f.valor,0);
+      const td=v.despesas.reduce((s,d)=>s+d.valor,0);
+      const sl=tf-td;
+      const km=v.odoFim&&v.odoIni?v.odoFim-v.odoIni:0;
+      const rotas=v.fretes.map(f=>`${f.origem.split(',')[0]}→${f.destino.split(',')[0]}`).join(' · ');
+      return`<div class="card" onclick="abrirViagemModal('${v.id}')">
+        <div class="vc-rota">${rotas}</div>
+        <div class="vc-data">${new Date(v.dtInicio+'T12:00:00').toLocaleDateString('pt-BR')}${v.dtFim?' → '+new Date(v.dtFim+'T12:00:00').toLocaleDateString('pt-BR'):''} ${km?'· '+km+' km':''}</div>
+        <div class="vc-tags">
+          <div class="vc-tag"><div class="vc-tl">Frete</div><div class="vc-tv g">${fmt(tf)}</div></div>
+          <div class="vc-tag"><div class="vc-tl">Despesas</div><div class="vc-tv r">${fmt(td)}</div></div>
+          <div class="vc-tag"><div class="vc-tl">${sl>=0?'Lucro':'Prejuízo'}</div><div class="vc-tv ${sl>=0?'g':'r'}">${fmt(sl)}</div></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  if(!h&&!ativa){
+    el.innerHTML=`<div class="empty"><div class="empty-ic">🛣️</div><div class="empty-tx">Você ainda não adicionou uma viagem.</div></div>`;
+  } else {
+    el.innerHTML=h;
+  }
+}
+
+// NOVA VIAGEM
+function novaViagem(){
+  // verifica se já tem rascunho ou ativa
+  if(D.viagens.find(v=>v.status==='ativa')){alert('Já há uma viagem em andamento. Finalize-a antes de iniciar outra.');return;}
+  vAtual={id:uid(),fretes:[],despesas:[],status:'rascunho',dtCriacao:hj(),odoIni:null,odoFim:null,dtInicio:null,dtFim:null};
+  D.viagens.push(vAtual);
+  save();
+  fOrig='';fDest='';
+  abrirModalFrete();
+}
+
+function adicionarFrete(){
+  fOrig='';fDest='';
+  document.getElementById('f-orig-val').textContent='Toque para incluir';
+  document.getElementById('f-orig-val').className='loc-val vz';
+  document.getElementById('f-dest-val').textContent='Toque para incluir';
+  document.getElementById('f-dest-val').className='loc-val vz';
+  ['f-carga','f-peso','f-valor','f-obs'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('f-data').value=hj();
+  document.getElementById('f-obs-wrap').style.display='none';
+  document.getElementById('f-obs-link').style.display='block';
+  document.getElementById('mViagem').classList.remove('open');
+  document.getElementById('mFrete').classList.add('open');
+}
+
+function abrirModalFrete(){
+  adicionarFrete();
+}
+
+function abrirBC(tipo){
+  bcTipo=tipo;
+  document.getElementById('bc-titulo').textContent=tipo==='origem'?'Buscar Origem':'Buscar Destino';
+  document.getElementById('bc-input').value='';
+  document.getElementById('bc-res').innerHTML='';
+  document.getElementById('mFrete').classList.remove('open');
+  document.getElementById('mBC').classList.add('open');
+  setTimeout(()=>document.getElementById('bc-input').focus(),300);
+}
+
+function voltarParaFrete(){
+  fM('mBC');
+  document.getElementById('mFrete').classList.add('open');
+}
+
+function buscarC(){
+  const q=document.getElementById('bc-input').value.trim().toLowerCase();
+  const el=document.getElementById('bc-res');
+  if(q.length<2){el.innerHTML='';return;}
+  const res=CIDADES.filter(c=>c.toLowerCase().includes(q));
+  const digitado=document.getElementById('bc-input').value.trim();
+  let h=`<div class="bc-lbl">Definir cidade como ${bcTipo}</div><div class="bc-res">`;
+  if(res.length){
+    res.slice(0,4).forEach(c=>{h+=`<div class="bc-item" onclick="selC('${c}')">${c}</div>`;});
+  } else {
+    h+=`<div class="bc-item" onclick="selC('${digitado}')">${digitado}</div>`;
+  }
+  h+='</div>';
+  el.innerHTML=h;
+}
+
+function selC(cidade){
+  if(bcTipo==='origem'){
+    fOrig=cidade;
+    document.getElementById('f-orig-val').textContent=cidade;
+    document.getElementById('f-orig-val').className='loc-val';
+  } else {
+    fDest=cidade;
+    document.getElementById('f-dest-val').textContent=cidade;
+    document.getElementById('f-dest-val').className='loc-val';
+  }
+  fM('mBC');
+  document.getElementById('mFrete').classList.add('open');
+}
+
+function salvarFrete(){
+  if(!fOrig){alert('Informe a origem.');return;}
+  if(!fDest){alert('Informe o destino.');return;}
+  const vl=parseFloat(document.getElementById('f-valor').value);
+  if(!vl||vl<=0){alert('Informe o valor do frete.');return;}
+  const frete={
+    id:uid(),origem:fOrig,destino:fDest,
+    carga:document.getElementById('f-carga').value.trim(),
+    peso:parseFloat(document.getElementById('f-peso').value)||0,
+    valor:vl,
+    data:document.getElementById('f-data').value,
+    obs:document.getElementById('f-obs').value.trim()
+  };
+  vAtual.fretes.push(frete);
+  save();
+  fM('mFrete');
+  abrirViagemModal(vAtual.id);
+}
+
+function abrirViagemModal(id){
+  vAtual=D.viagens.find(v=>v.id===id);
+  if(!vAtual)return;
+  updViagemModal();
+  document.getElementById('mViagem').classList.add('open');
+}
+
+function updViagemModal(){
+  if(!vAtual)return;
+  // fretes
+  const tfEl=document.getElementById('mv-fretes');
+  tfEl.innerHTML=vAtual.fretes.map(f=>`
+    <div class="fi" style="margin:0 0 8px">
+      <div class="fi-rota">📍 ${f.origem} <span style="color:var(--tx3)">→</span> 🏁 ${f.destino}</div>
+      <div class="fi-info">${f.carga?f.carga+' · ':''}${f.peso?f.peso+' kg · ':''}${f.data?new Date(f.data+'T12:00:00').toLocaleDateString('pt-BR'):''}</div>
+      <div class="fi-val">${fmt(f.valor)}</div>
+    </div>`).join('');
+
+  // despesas agrupadas
+  const grupos={};
+  vAtual.despesas.forEach(d=>{
+    if(!grupos[d.tipo])grupos[d.tipo]={total:0,qtd:0,ultima:d.data};
+    grupos[d.tipo].total+=d.valor;
+    grupos[d.tipo].qtd++;
+    if(d.data>grupos[d.tipo].ultima)grupos[d.tipo].ultima=d.data;
+  });
+  const dsEl=document.getElementById('mv-despesas');
+  const dsSec=document.getElementById('mv-despesas-sec');
+  if(Object.keys(grupos).length){
+    dsSec.style.display='block';
+    dsEl.innerHTML=Object.entries(grupos).map(([tipo,g])=>`
+      <div class="di" style="margin:0 0 8px">
+        <div class="di-l">
+          <div class="di-tipo">${TIPOS_IC[tipo]||'📦'} ${tipo}</div>
+          <div class="di-sub">${g.qtd} registro${g.qtd>1?'s':''} · ${g.ultima?new Date(g.ultima+'T12:00:00').toLocaleDateString('pt-BR'):''}</div>
+        </div>
+        <div class="di-val">${fmt(g.total)}</div>
+      </div>`).join('');
+  } else {dsSec.style.display='none';}
+
+  // resumo
+  const tf=vAtual.fretes.reduce((s,f)=>s+f.valor,0);
+  const td=vAtual.despesas.reduce((s,d)=>s+d.valor,0);
+  const sl=tf-td;
+  document.getElementById('mv-tf').textContent=fmt(tf);
+  document.getElementById('mv-td').textContent=fmt(td);
+  const slEl=document.getElementById('mv-sl');
+  slEl.textContent=fmt(sl);
+  slEl.className='rrv '+(sl>=0?'g':'r');
+
+  // indicadores
+  const odoI=vAtual.odoIni||0;
+  const odoF=vAtual.odoFim||0;
+  const km=odoF>odoI?odoF-odoI:0;
+  const litros=vAtual.despesas.filter(d=>d.tipo==='Abastecimento').reduce((s,d)=>s+(d.litros||0),0);
+  const gastoD=vAtual.despesas.filter(d=>d.tipo==='Abastecimento').reduce((s,d)=>s+d.valor,0);
+  const media=litros>0&&km>0?km/litros:0;
+  const precoMed=litros>0?gastoD/litros:0;
+  const dieselKm=km>0?gastoD/km:0;
+  const freteKm=km>0?tf/km:0;
+  const pct=tf>0?sl/tf*100:0;
+  const liqKm=km>0?sl/km:0;
+
+  document.getElementById('ind-odo-i').textContent=odoI?odoI.toLocaleString('pt-BR')+' km':'—';
+  document.getElementById('ind-odo-f').textContent=odoF?odoF.toLocaleString('pt-BR')+' km':'—';
+  document.getElementById('ind-km').textContent=km?km.toLocaleString('pt-BR')+' km':'—';
+  document.getElementById('ind-litros').textContent=litros?fmtN(litros)+' L':'—';
+  document.getElementById('ind-media').textContent=media?fmtN(media)+' km/L':'—';
+  document.getElementById('ind-preco-d').textContent=precoMed?fmt(precoMed)+'/L':'—';
+  document.getElementById('ind-diesel-km').textContent=dieselKm?fmt(dieselKm)+'/km':'—';
+  document.getElementById('ind-frete-km').textContent=freteKm?fmt(freteKm)+'/km':'—';
+  document.getElementById('ind-pct').textContent=tf>0?fmtN(pct)+'%':'—';
+  document.getElementById('ind-liq-km').textContent=liqKm?fmt(liqKm)+'/km':'—';
+
+  // botão finalizar
+  const bf=document.getElementById('btn-finalizar');
+  if(vAtual.status==='finalizada'){bf.style.display='none';}
+  else if(vAtual.status==='rascunho'){bf.textContent='Iniciar viagem';bf.onclick=abrirIniciar;}
+  else{bf.textContent='Finalizar';bf.onclick=abrirFinalizar;}
+}
+
+function abrirIniciar(){
+  document.getElementById('odo-saida').value='';
+  document.getElementById('mViagem').classList.remove('open');
+  document.getElementById('mIniciar').classList.add('open');
+}
+
+function iniciarViagem(){
+  const odo=parseInt(document.getElementById('odo-saida').value);
+  if(!odo||odo<=0){alert('Informe o odômetro de saída.');return;}
+  vAtual.odoIni=odo;
+  vAtual.status='ativa';
+  vAtual.dtInicio=hj();
+  save();fM('mIniciar');
+  updViagemModal();
+  document.getElementById('mViagem').classList.add('open');
+  render();
+}
+
+function abrirFinalizar(){
+  document.getElementById('odo-chegada').value='';
+  document.getElementById('fin-prev').innerHTML='';
+  document.getElementById('mViagem').classList.remove('open');
+  document.getElementById('mFinalizar').classList.add('open');
+}
+
+function prevFinalizar(){
+  const odoF=parseInt(document.getElementById('odo-chegada').value)||0;
+  const odoI=vAtual.odoIni||0;
+  const km=odoF>odoI?odoF-odoI:0;
+  if(km>0){
+    document.getElementById('fin-prev').innerHTML=`<div class="card" style="margin:0 0 8px"><div style="font-size:13px;color:var(--tx2)">Km percorridos: <strong style="color:var(--tl)">${km.toLocaleString('pt-BR')} km</strong></div></div>`;
+  }
+}
+
+function finalizarViagem(){
+  const odoF=parseInt(document.getElementById('odo-chegada').value);
+  if(!odoF||odoF<=0){alert('Informe o odômetro de chegada.');return;}
+  if(odoF<=(vAtual.odoIni||0)){alert('Odômetro final deve ser maior que o inicial.');return;}
+  vAtual.odoFim=odoF;
+  vAtual.status='finalizada';
+  vAtual.dtFim=hj();
+  save();fM('mFinalizar');
+  updViagemModal();
+  document.getElementById('mViagem').classList.add('open');
+  render();
+}
+
+function abrirDespesa(){
+  document.getElementById('d-tipo').value='';
+  document.getElementById('d-valor').value='';
+  document.getElementById('d-data').value=hj();
+  document.getElementById('d-estab').value='';
+  document.getElementById('d-cidade').value='';
+  document.getElementById('d-litros').value='';
+  document.getElementById('d-preco-l').value='';
+  document.getElementById('d-obs').value='';
+  document.getElementById('d-abast').style.display='none';
+  document.getElementById('d-obs-wrap').style.display='none';
+  document.getElementById('d-obs-link').style.display='block';
+  document.getElementById('mViagem').classList.remove('open');
+  document.getElementById('mDespesa').classList.add('open');
+}
+
+function updTipo(){
+  const t=document.getElementById('d-tipo').value;
+  document.getElementById('d-abast').style.display=t==='Abastecimento'?'block':'none';
+}
+
+function calcAbast(){
+  const l=parseFloat(document.getElementById('d-litros').value)||0;
+  const p=parseFloat(document.getElementById('d-preco-l').value)||0;
+  if(l>0&&p>0)document.getElementById('d-valor').value=(l*p).toFixed(2);
+}
+
+function salvarDespesa(){
+  const tipo=document.getElementById('d-tipo').value;
+  if(!tipo){alert('Selecione o tipo de despesa.');return;}
+  const vl=parseFloat(document.getElementById('d-valor').value);
+  if(!vl||vl<=0){alert('Informe o valor.');return;}
+  const desp={
+    id:uid(),tipo,valor:vl,
+    data:document.getElementById('d-data').value,
+    estab:document.getElementById('d-estab').value.trim(),
+    cidade:document.getElementById('d-cidade').value.trim(),
+    litros:parseFloat(document.getElementById('d-litros').value)||0,
+    precoL:parseFloat(document.getElementById('d-preco-l').value)||0,
+    obs:document.getElementById('d-obs').value.trim()
+  };
+  vAtual.despesas.push(desp);
+  save();fM('mDespesa');
+  updViagemModal();
+  document.getElementById('mViagem').classList.add('open');
+}
+
+function deletarViagemAtual(){
+  if(!confirm('Deletar esta viagem?'))return;
+  D.viagens=D.viagens.filter(v=>v.id!==vAtual.id);
+  save();fM('mViagem');render();
+}
+
+// RELATÓRIO
+function renderRel(){
+  const periodos=[
+    {id:'mes',lbl:'Este mês'},
+    {id:'3m',lbl:'3 meses'},
+    {id:'6m',lbl:'6 meses'},
+    {id:'ano',lbl:'Este ano'},
+    {id:'tudo',lbl:'Tudo'},
+  ];
+  document.getElementById('pf-pills').innerHTML=periodos.map(p=>`<button class="pf-pill${relPeriodo===p.id?' on':''}" onclick="setRelP('${p.id}')">${p.lbl}</button>`).join('');
+
+  const hoje=new Date();
+  const viagens=D.viagens.filter(v=>{
+    if(!v.dtInicio)return false;
+    if(relPeriodo==='tudo')return true;
+    const d=new Date(v.dtInicio+'T12:00:00');
+    if(relPeriodo==='mes')return d.getFullYear()===hoje.getFullYear()&&d.getMonth()===hoje.getMonth();
+    if(relPeriodo==='3m')return (hoje-d)<=90*864e5;
+    if(relPeriodo==='6m')return (hoje-d)<=180*864e5;
+    if(relPeriodo==='ano')return d.getFullYear()===hoje.getFullYear();
+    return true;
+  });
+
+  const tf=viagens.reduce((s,v)=>s+v.fretes.reduce((a,f)=>a+f.valor,0),0);
+  const td=viagens.reduce((s,v)=>s+v.despesas.reduce((a,d)=>a+d.valor,0),0);
+  const sl=tf-td;
+  const km=viagens.reduce((s,v)=>s+(v.odoFim&&v.odoIni?v.odoFim-v.odoIni:0),0);
+
+  // por categoria
+  const cats={};
+  viagens.forEach(v=>v.despesas.forEach(d=>{
+    if(!cats[d.tipo])cats[d.tipo]=0;
+    cats[d.tipo]+=d.valor;
+  }));
+
+  let h='';
+
+  // resultado
+  h+=`<div class="${sl>=0?'resultado-tag rt-lucro':'resultado-tag rt-prejuizo'}">
+    <div class="rt-icon">${sl>=0?'✅':'❌'}</div>
+    <div class="rt-info">
+      <div class="rt-lbl">${sl>=0?'Lucro líquido':'Prejuízo líquido'} no período</div>
+      <div class="rt-val ${sl>=0?'g':'r'}">${fmt(sl)}</div>
+    </div>
+  </div>`;
+
+  // resumo geral
+  h+=`<div class="sec-lbl">Resumo geral</div>
+  <div class="resumo" style="margin:0 16px 10px">
+    <div class="rr"><span class="rrl">Viagens</span><span class="rrv">${viagens.length}</span></div>
+    <div class="rr"><span class="rrl">Total de fretes</span><span class="rrv g">${fmt(tf)}</span></div>
+    <div class="rr"><span class="rrl">Total de despesas</span><span class="rrv r">${fmt(td)}</span></div>
+    <div class="rr"><span class="rrl">Km rodados</span><span class="rrv">${km.toLocaleString('pt-BR')} km</span></div>
+    <div class="rr"><span class="rrl">Saldo líquido</span><span class="rrv ${sl>=0?'g':'r'}">${fmt(sl)}</span></div>
+  </div>`;
+
+  // por categoria
+  if(Object.keys(cats).length){
+    h+=`<div class="sec-lbl">Gastos por categoria</div>`;
+    Object.entries(cats).sort((a,b)=>b[1]-a[1]).forEach(([tipo,val])=>{
+      const pct=td>0?Math.round(val/td*100):0;
+      h+=`<div class="rcat">
+        <div class="rcat-top">
+          <div class="rcat-nome">${TIPOS_IC[tipo]||'📦'} ${tipo}</div>
+          <div class="rcat-val">${fmt(val)}</div>
+        </div>
+        <div class="rcat-bar-wrap"><div class="rcat-bar" style="width:${pct}%"></div></div>
+        <div class="rcat-pct">${pct}% do total de despesas</div>
+      </div>`;
+    });
+  }
+
+  if(!viagens.length){
+    h='<div class="empty"><div class="empty-ic">📊</div><div class="empty-tx">Nenhuma viagem no período selecionado.</div></div>';
+  }
+
+  document.getElementById('rel-content').innerHTML=h;
+}
+
+function setRelP(p){relPeriodo=p;renderRel();}
+
+document.querySelectorAll('.mbg').forEach(m=>m.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');}));
+G('viagens');load();
+</script>
+</body>
+</html>
