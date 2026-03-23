@@ -316,6 +316,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="ir"><span class="irl">% lucro em relação ao frete bruto</span><span class="irv" id="ind-pct">—</span></div>
     <div class="ir"><span class="irl">Lucro líquido por Km</span><span class="irv" id="ind-liq-km">—</span></div>
   </div>
+  <div id="mv-pagamento" style="display:none"></div>
   <div class="btn-row">
     <button class="bca" onclick="abrirFinalizar()" id="btn-finalizar">Finalizar</button>
     <button class="bok" style="width:auto;padding:13px 22px" id="btn-nova-desp" onclick="abrirDespesa()">+ Nova Despesa</button>
@@ -490,9 +491,10 @@ function render(){
       const sl=tf-td;
       const km=v.odoFim&&v.odoIni?v.odoFim-v.odoIni:0;
       const rotas=v.fretes.map(f=>`${f.origem.split(',')[0]}→${f.destino.split(',')[0]}`).join(' · ');
+      const statusTag=v.status==='ativa'?'<span style="color:var(--am);font-weight:600">● Em aberto</span>':v.status==='encerrada'?'<span style="color:var(--tl);font-weight:600">● Encerrada</span>':v.status==='finalizada'?'<span style="color:var(--tl);font-weight:600">✅ Paga</span>':'<span style="color:var(--tx3)">●</span>';
       return`<div class="card" onclick="abrirViagemModal('${v.id}')">
         <div class="vc-rota">${rotas}</div>
-        <div class="vc-data">${new Date(v.dtInicio+'T12:00:00').toLocaleDateString('pt-BR')}${v.dtFim?' → '+new Date(v.dtFim+'T12:00:00').toLocaleDateString('pt-BR'):''} ${km?'· '+km+' km':''}</div>
+        <div class="vc-data">${new Date(v.dtInicio+'T12:00:00').toLocaleDateString('pt-BR')}${v.dtFim?' → '+new Date(v.dtFim+'T12:00:00').toLocaleDateString('pt-BR'):''} ${km?'· '+km+' km':''} · ${statusTag}</div>
         <div class="vc-tags">
           <div class="vc-tag"><div class="vc-tl">Frete</div><div class="vc-tv g">${fmt(tf)}</div></div>
           <div class="vc-tag"><div class="vc-tl">Despesas</div><div class="vc-tv r">${fmt(td)}</div></div>
@@ -697,7 +699,21 @@ function updViagemModal(){
   document.getElementById('ind-pct').textContent=tf>0?fmtN(pct)+'%':'—';
   document.getElementById('ind-liq-km').textContent=liqKm?fmt(liqKm)+'/km':'—';
 
-  // botões de ação
+  // info de pagamento se finalizada
+  const pagSec=document.getElementById('mv-pagamento');
+  if(vAtual.status==='finalizada'&&vAtual.pagamento){
+    pagSec.style.display='block';
+    pagSec.innerHTML=`
+      <div style="font-size:12px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Pagamento</div>
+      <div class="resumo" style="margin:0 0 10px">
+        <div class="rr"><span class="rrl">Data do recebimento</span><span class="rrv">${new Date(vAtual.pagamento.data+'T12:00:00').toLocaleDateString('pt-BR')}</span></div>
+        <div class="rr"><span class="rrl">Forma</span><span class="rrv">${vAtual.pagamento.forma}</span></div>
+        ${vAtual.pagamento.obs?`<div class="rr"><span class="rrl">Obs</span><span class="rrv" style="font-size:12px">${vAtual.pagamento.obs}</span></div>`:''}
+      </div>`;
+  } else {
+    pagSec.style.display='none';
+    pagSec.innerHTML='';
+  }
   const bf=document.getElementById('btn-finalizar');
   const bnd=document.getElementById('btn-nova-desp');
   if(vAtual.status==='finalizada'){
@@ -715,9 +731,10 @@ function updViagemModal(){
     if(bnd)bnd.style.display='inline-block';
   } else if(vAtual.status==='encerrada'){
     bf.style.display='inline-block';
-    bf.textContent='✅ Recebi o pagamento';
-    bf.style.background='var(--tl)';
-    bf.onclick=receberPagamento;
+    bf.textContent='💰 Registrar pagamento';
+    bf.style.background='var(--am)';
+    bf.style.color='#0d2525';
+    bf.onclick=abrirPagamento;
     if(bnd)bnd.style.display='none';
   }
 }
@@ -774,12 +791,30 @@ function finalizarViagem(){
   render();
 }
 
-function receberPagamento(){
-  if(!confirm('Confirmar recebimento do pagamento?\n\nIsso vai marcar a viagem como finalizada.'))return;
+function abrirPagamento(){
+  const tf=vAtual.fretes.reduce((s,f)=>s+f.valor,0);
+  const td=vAtual.despesas.reduce((s,d)=>s+d.valor,0);
+  const sl=tf-td;
+  document.getElementById('pag-valor').textContent=fmt(sl);
+  document.getElementById('pag-data').value=hj();
+  document.getElementById('pag-obs').value='';
+  document.getElementById('pag-forma').value='PIX';
+  document.getElementById('mViagem').classList.remove('open');
+  document.getElementById('mPagamento').classList.add('open');
+}
+
+function confirmarPagamento(){
+  const data=document.getElementById('pag-data').value;
+  const forma=document.getElementById('pag-forma').value;
+  const obs=document.getElementById('pag-obs').value.trim();
+  if(!data){alert('Informe a data do recebimento.');return;}
   vAtual.status='finalizada';
-  vAtual.dtFim=hj();
+  vAtual.dtFim=data;
+  vAtual.pagamento={data,forma,obs};
   save();
+  fM('mPagamento');
   updViagemModal();
+  document.getElementById('mViagem').classList.add('open');
   render();
 }
 
@@ -1074,5 +1109,30 @@ function sair(){
 
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('loginWrap').style.display!=='none')fazerLogin();});
 </script>
+<!-- MODAL REGISTRAR PAGAMENTO -->
+<div class="mbg" id="mPagamento">
+<div class="modal">
+  <div class="mh"></div>
+  <div class="mh-row"><div class="mt">💰 Registrar Pagamento</div><button class="mx" onclick="fM('mPagamento');document.getElementById('mViagem').classList.add('open')">✕</button></div>
+  <div style="background:var(--bg3);border-radius:var(--rs);padding:14px;margin-bottom:16px">
+    <div style="font-size:12px;color:var(--tx3);margin-bottom:4px">Valor a receber</div>
+    <div style="font-size:24px;font-weight:700;color:var(--tl)" id="pag-valor">R$ 0,00</div>
+  </div>
+  <div class="fld"><label>Data do recebimento</label><input type="date" id="pag-data"></div>
+  <div class="fld"><label>Forma de pagamento</label>
+    <select id="pag-forma">
+      <option value="PIX">PIX</option>
+      <option value="Transferência">Transferência</option>
+      <option value="Dinheiro">Dinheiro</option>
+      <option value="Boleto">Boleto</option>
+      <option value="Outros">Outros</option>
+    </select>
+  </div>
+  <div class="fld"><label>Observação (opcional)</label><input type="text" id="pag-obs" placeholder="Ex: Pago pela transportadora X..."></div>
+  <button class="bok" onclick="confirmarPagamento()">✅ Confirmar recebimento</button>
+  <button class="bca" style="width:100%;text-align:center;display:block;margin-top:8px" onclick="fM('mPagamento');document.getElementById('mViagem').classList.add('open')">Cancelar</button>
+</div>
+</div>
+
 </body>
 </html>
