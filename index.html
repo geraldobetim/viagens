@@ -194,20 +194,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <!-- VIAGENS -->
 <div id="s-viagens" class="sc active">
-  <div class="topb">
-    <div class="topb-t">🚛 Minhas Viagens</div>
-    <div style="display:flex;gap:12px;align-items:center">
-      <button onclick="abrirFiltro()" style="background:none;border:none;color:var(--tl);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px">
-        <svg style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2" viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
-        Filtrar
-      </button>
-      <button onclick="G('relatorio')" style="background:none;border:none;color:var(--tl);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px">
-        <svg style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
-        Relatório
-      </button>
-    </div>
-  </div>
+  <div class="topb" style="display:none"></div>
   <div id="card-ativa"></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 16px 8px">
+    <div style="font-size:15px;font-weight:700;color:var(--tx)">Minhas Viagens</div>
+    <button onclick="abrirFiltro()" style="background:none;border:none;color:var(--tl);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px">
+      <svg style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2" viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+      Filtrar
+    </button>
+  </div>
   <div id="lista-viagens">
     <div class="empty"><div class="empty-ic">🛣️</div><div class="empty-tx">Você ainda não adicionou uma viagem.</div></div>
   </div>
@@ -510,17 +505,21 @@ function render(){
 
   // --- SEÇÃO EM ANDAMENTO (sempre visível, não afetada pelo filtro de lista) ---
   if(ativas.length){
-    hAtivas+=`<div class="sec-lbl">Em Andamento</div>`;
+    hAtivas+=`<div style="font-size:13px;font-weight:700;color:var(--tx2);padding:14px 16px 8px">Em Andamento</div>`;
     hAtivas+=ativas.map(v=>{
       const orig=v.fretes[0]?.origem||'—';
       const dest=v.fretes[v.fretes.length-1]?.destino||'—';
-      return`<div class="card-ativa" onclick="abrirViagemModal('${v.id}')">
-        <div class="ca-row">
-          <div class="ca-left" style="flex:1">
-            <div class="ca-status">🟢 Em andamento</div>
-            <div class="ca-rota">${orig.split(',')[0]} → ${dest.split(',')[0]}</div>
-            <div class="ca-data">Início: ${v.dtInicio?new Date(v.dtInicio+'T12:00:00').toLocaleDateString('pt-BR'):'—'}</div>
-          </div>
+      const hoje=hj();
+      const dtLabel=v.dtInicio===hoje?'Hoje':v.dtInicio?new Date(v.dtInicio+'T12:00:00').toLocaleDateString('pt-BR'):'—';
+      const rotaLabel=orig===dest?orig.split(',')[0]:`${orig.split(',')[0]} → ${dest.split(',')[0]}`;
+      return`<div style="background:var(--bg2);border-radius:var(--r);margin:0 16px 10px;padding:16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.18)" onclick="abrirViagemModal('${v.id}')">
+        <div style="flex:1">
+          <div style="font-size:11px;color:var(--tx3);margin-bottom:4px">Em Andamento</div>
+          <div style="font-size:17px;font-weight:700;color:var(--tl);margin-bottom:3px">${rotaLabel}</div>
+          <div style="font-size:12px;color:var(--tx3)">Início em ${dtLabel}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+          <div style="font-size:11px;color:var(--tx3)">${dtLabel}</div>
           <button class="ca-plus" onclick="event.stopPropagation();abrirViagemModal('${v.id}')">+</button>
         </div>
       </div>`;
