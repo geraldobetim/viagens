@@ -330,6 +330,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script>
 const SK='viagens_geraldo_v1';
+const API='https://script.google.com/macros/s/AKfycbzixKGg6_ngVugBqLpl0_58HwKVA3yJFtz35fE1OcnwKzj-dE62Hzb2jTPvy0Q84fIRCw/exec';
+let sincronizando=false;
+
+function showSync(msg,cor){
+  let el=document.getElementById('sync-bar');
+  if(!el){el=document.createElement('div');el.id='sync-bar';el.style.cssText='position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:420px;padding:7px 16px;font-size:12px;font-weight:600;text-align:center;z-index:9999;transition:all .3s';document.body.appendChild(el);}
+  el.style.background=cor||'var(--tl2)';el.style.color=cor?'#fff':'var(--tl)';el.textContent=msg;el.style.display='block';
+  if(msg==='✓ Salvo na nuvem'||msg.includes('Erro')||msg.includes('locais'))setTimeout(()=>el.style.display='none',2500);
+}
 let D={viagens:[]};
 let vAtual=null;
 let fOrig='',fDest='';
@@ -344,10 +353,34 @@ const fmtN=v=>v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionD
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
 const fM=id=>document.getElementById(id).classList.remove('open');
 const hj=()=>new Date().toISOString().split('T')[0];
-const save=()=>{try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}};
+const save=async()=>{
+  try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}
+  if(sincronizando)return;
+  sincronizando=true;
+  showSync('⏳ Salvando...');
+  try{
+    await fetch(API,{method:'POST',body:JSON.stringify({action:'save',app:'viagens',id:'dados_principais',payload:D})});
+    showSync('✓ Salvo na nuvem');
+  }catch(e){showSync('⚠ Salvo localmente (sem internet)','#e8a020');}
+  sincronizando=false;
+};
 
-function load(){
-  try{const r=localStorage.getItem(SK);if(r){const d=JSON.parse(r);D=Object.assign({viagens:[]},d);}}catch(e){}
+async function load(){
+  showSync('⏳ Carregando dados...');
+  try{
+    const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'load',app:'viagens',id:'dados_principais'})});
+    const j=await r.json();
+    if(j.ok&&j.data&&j.data['dados_principais']){
+      D=Object.assign({viagens:[]},j.data['dados_principais']);
+      showSync('✓ Dados carregados da nuvem');
+    } else {
+      try{const rl=localStorage.getItem(SK);if(rl){const d=JSON.parse(rl);D=Object.assign({viagens:[]},d);}}catch(e){}
+      showSync('✓ Dados locais carregados','#e8a020');
+    }
+  }catch(e){
+    try{const rl=localStorage.getItem(SK);if(rl){const d=JSON.parse(rl);D=Object.assign({viagens:[]},d);}}catch(e2){}
+    showSync('⚠ Offline - dados locais','#e8a020');
+  }
   render();
 }
 
