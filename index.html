@@ -129,9 +129,59 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .pf-row{display:flex;gap:8px;margin:0 16px 12px;flex-wrap:wrap}
 .pf-pill{padding:7px 14px;border:1.5px solid var(--br);border-radius:20px;font-size:12px;font-weight:600;color:var(--tx3);background:none;cursor:pointer}
 .pf-pill.on{border-color:var(--tl);color:var(--tl);background:rgba(45,212,176,.08)}
+.login-wrap{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 24px}
+.login-logo{font-size:48px;margin-bottom:8px}
+.login-title{font-size:24px;font-weight:700;margin-bottom:4px}
+.login-sub{font-size:13px;color:var(--tx3);margin-bottom:32px}
+.login-card{background:var(--bg2);border-radius:var(--r);padding:24px;width:100%;max-width:380px}
+.login-tabs{display:flex;background:var(--bg3);border-radius:28px;padding:3px;margin-bottom:20px}
+.login-tab{flex:1;padding:8px;text-align:center;font-size:13px;font-weight:600;border:none;background:none;color:var(--tx3);cursor:pointer;border-radius:26px}
+.login-tab.on{background:var(--bg2);color:var(--tx)}
+.login-fld{margin-bottom:12px}
+.login-fld label{display:block;font-size:12px;color:var(--tx2);margin-bottom:4px;font-weight:500}
+.login-fld input{width:100%;background:var(--bg3);border:0.5px solid var(--br);border-radius:var(--rs);padding:12px 13px;color:var(--tx);font-size:15px;outline:none}
+.login-fld input:focus{border-color:var(--tl)}
+.login-btn{width:100%;background:var(--tl);border:none;border-radius:var(--rs);padding:14px;color:#0d2525;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px}
+.login-err{background:rgba(224,85,85,.13);border:0.5px solid #c04040;border-radius:var(--rs);padding:10px;font-size:13px;color:#ff9a9a;margin-bottom:12px;display:none}
+.login-err.show{display:block}
+.login-ok{background:rgba(45,212,176,.11);border:0.5px solid var(--tl2);border-radius:var(--rs);padding:10px;font-size:13px;color:var(--tl);margin-bottom:12px;display:none}
+.login-ok.show{display:block}
+.login-forgot{text-align:center;color:var(--tl);font-size:13px;cursor:pointer;margin-top:12px}
+.user-bar{background:var(--bg2);padding:8px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:0.5px solid var(--br)}
+.user-email{font-size:12px;color:var(--tx3)}
+.user-sair{background:none;border:none;color:var(--tl);font-size:12px;cursor:pointer;font-weight:600}
 </style>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 </head>
 <body>
+
+<!-- TELA DE LOGIN -->
+<div class="login-wrap" id="loginWrap">
+  <div class="login-logo">🚛</div>
+  <div class="login-title">Gestão de Viagens</div>
+  <div class="login-sub">Controle suas viagens e despesas</div>
+  <div class="login-card">
+    <div class="login-tabs">
+      <button class="login-tab on" id="tab-entrar" onclick="setLoginTab('entrar')">Entrar</button>
+      <button class="login-tab" id="tab-cadastrar" onclick="setLoginTab('cadastrar')">Cadastrar</button>
+    </div>
+    <div class="login-err" id="login-err"></div>
+    <div class="login-ok" id="login-ok"></div>
+    <div class="login-fld"><label>Email</label><input type="email" id="login-email" placeholder="seu@email.com"></div>
+    <div class="login-fld"><label>Senha</label><input type="password" id="login-senha" placeholder="••••••••"></div>
+    <div class="login-fld" id="wrap-confirma" style="display:none"><label>Confirmar senha</label><input type="password" id="login-confirma" placeholder="••••••••"></div>
+    <button class="login-btn" id="login-btn-action" onclick="fazerLogin()">Entrar</button>
+    <div class="login-forgot" id="login-forgot" onclick="recuperarSenha()">Esqueci minha senha</div>
+  </div>
+  <div style="font-size:11px;color:var(--tx3);margin-top:20px;text-align:center">Seus dados ficam salvos na nuvem com segurança</div>
+</div>
+
+<!-- BARRA DO USUÁRIO -->
+<div class="user-bar" id="userBar" style="display:none">
+  <span class="user-email" id="userEmail">—</span>
+  <button class="user-sair" onclick="sair()">Sair</button>
+</div>
 
 <!-- VIAGENS -->
 <div id="s-viagens" class="sc active">
@@ -207,7 +257,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="fld"><label>Peso (Kg)</label><input type="number" id="f-peso" placeholder="0" min="0" step="0.1"></div>
   </div>
   <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">💲 Valores</div>
-  <div class="fld"><label>Valor do Frete (R$)</label><input type="number" id="f-valor" placeholder="0,00" min="0" step="0.01"></div>
+  <div class="fld"><label>Valor do Frete (R$)</label><input type="tel" id="f-valor" placeholder="0,00" oninput="maskMoeda(this)"></div>
   <div class="fld"><label>Data</label><input type="date" id="f-data"></div>
   <div id="f-obs-wrap" style="display:none"><div class="fld"><label>Observação</label><textarea id="f-obs" placeholder="Anotações..."></textarea></div></div>
   <div id="f-obs-link" style="color:var(--tl);font-size:13px;font-weight:600;cursor:pointer;margin-bottom:14px" onclick="document.getElementById('f-obs-wrap').style.display='block';this.style.display='none'">+ Observação</div>
@@ -313,11 +363,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
   <div id="d-abast" style="display:none">
     <div class="fr2">
-      <div class="fld"><label>Litros</label><input type="number" id="d-litros" placeholder="0,00" min="0" step="0.01" oninput="calcAbast()"></div>
-      <div class="fld"><label>Preço/L (R$)</label><input type="number" id="d-preco-l" placeholder="0,00" min="0" step="0.01" oninput="calcAbast()"></div>
+      <div class="fld"><label>Preço/L (R$)</label><input type="number" id="d-preco-l" placeholder="Ex: 6,49" min="0" step="0.01" oninput="calcAbast()"></div>
+      <div style="background:var(--bg4);border-radius:var(--rs);padding:10px 13px;margin-bottom:13px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;color:var(--tx2)">Litros abastecidos</span>
+        <span style="font-size:16px;font-weight:700;color:var(--tl)" id="d-litros-calc">— L</span>
+      </div>
     </div>
   </div>
-  <div class="fld"><label>Valor (R$)</label><input type="number" id="d-valor" placeholder="0,00" min="0" step="0.01"></div>
+  <div class="fld"><label>Valor (R$)</label><input type="tel" id="d-valor" placeholder="0,00" oninput="maskMoeda(this);calcAbast()"></div>
   <div class="fld"><label>Data</label><input type="date" id="d-data"></div>
   <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Outros dados</div>
   <div class="fld"><label>Nome do estabelecimento</label><input type="text" id="d-estab" placeholder="Ex: Posto BR, Restaurante..."></div>
@@ -354,12 +407,12 @@ const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
 const fM=id=>document.getElementById(id).classList.remove('open');
 const hj=()=>new Date().toISOString().split('T')[0];
 const save=async()=>{
-  try{localStorage.setItem(SK,JSON.stringify(D));}catch(e){}
-  if(sincronizando)return;
+  try{localStorage.setItem(SK+'_'+(currentUser?.uid||'local'),JSON.stringify(D));}catch(e){}
+  if(sincronizando||!currentUser)return;
   sincronizando=true;
   showSync('⏳ Salvando...');
   try{
-    await fetch(API,{method:'POST',body:JSON.stringify({action:'save',app:'viagens',id:'dados_principais',payload:D})});
+    await fetch(API,{method:'POST',body:JSON.stringify({action:'save',app:'viagens',id:currentUser?.uid||'anonimo',payload:D})});
     showSync('✓ Salvo na nuvem');
   }catch(e){showSync('⚠ Salvo localmente (sem internet)','#e8a020');}
   sincronizando=false;
@@ -368,17 +421,17 @@ const save=async()=>{
 async function load(){
   showSync('⏳ Carregando dados...');
   try{
-    const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'load',app:'viagens',id:'dados_principais'})});
+    const r=await fetch(API,{method:'POST',body:JSON.stringify({action:'load',app:'viagens',id:currentUser?.uid||'anonimo'})});
     const j=await r.json();
-    if(j.ok&&j.data&&j.data['dados_principais']){
-      D=Object.assign({viagens:[]},j.data['dados_principais']);
+    if(j.ok&&j.data&&j.data[currentUser?.uid||'anonimo']){
+      D=Object.assign({viagens:[]},j.data[currentUser?.uid||'anonimo']);
       showSync('✓ Dados carregados da nuvem');
     } else {
-      try{const rl=localStorage.getItem(SK);if(rl){const d=JSON.parse(rl);D=Object.assign({viagens:[]},d);}}catch(e){}
+      try{const rl=localStorage.getItem(SK+'_'+(currentUser?.uid||'local'));if(rl){const d=JSON.parse(rl);D=Object.assign({viagens:[]},d);}}catch(e){}
       showSync('✓ Dados locais carregados','#e8a020');
     }
   }catch(e){
-    try{const rl=localStorage.getItem(SK);if(rl){const d=JSON.parse(rl);D=Object.assign({viagens:[]},d);}}catch(e2){}
+    try{const rl=localStorage.getItem(SK+'_'+(currentUser?.uid||'local'));if(rl){const d=JSON.parse(rl);D=Object.assign({viagens:[]},d);}}catch(e2){}
     showSync('⚠ Offline - dados locais','#e8a020');
   }
   render();
@@ -533,7 +586,7 @@ function selC(cidade){
 function salvarFrete(){
   if(!fOrig){alert('Informe a origem.');return;}
   if(!fDest){alert('Informe o destino.');return;}
-  const vl=parseFloat(document.getElementById('f-valor').value);
+  const vl=getMoeda(document.getElementById('f-valor'));
   if(!vl||vl<=0){alert('Informe o valor do frete.');return;}
   const frete={
     id:uid(),origem:fOrig,destino:fDest,
@@ -567,26 +620,45 @@ function updViagemModal(){
       <div class="fi-val">${fmt(f.valor)}</div>
     </div>`).join('');
 
-  // despesas agrupadas
+  // despesas agrupadas com expand/collapse
   const grupos={};
   vAtual.despesas.forEach(d=>{
-    if(!grupos[d.tipo])grupos[d.tipo]={total:0,qtd:0,ultima:d.data};
+    if(!grupos[d.tipo])grupos[d.tipo]={total:0,items:[],aberto:false};
     grupos[d.tipo].total+=d.valor;
-    grupos[d.tipo].qtd++;
-    if(d.data>grupos[d.tipo].ultima)grupos[d.tipo].ultima=d.data;
+    grupos[d.tipo].items.push(d);
   });
   const dsEl=document.getElementById('mv-despesas');
   const dsSec=document.getElementById('mv-despesas-sec');
   if(Object.keys(grupos).length){
     dsSec.style.display='block';
-    dsEl.innerHTML=Object.entries(grupos).map(([tipo,g])=>`
-      <div class="di" style="margin:0 0 8px">
-        <div class="di-l">
-          <div class="di-tipo">${TIPOS_IC[tipo]||'📦'} ${tipo}</div>
-          <div class="di-sub">${g.qtd} registro${g.qtd>1?'s':''} · ${g.ultima?new Date(g.ultima+'T12:00:00').toLocaleDateString('pt-BR'):''}</div>
+    dsEl.innerHTML=Object.entries(grupos).map(([tipo,g])=>{
+      const ultima=g.items[g.items.length-1]?.data;
+      return`<div class="di" style="margin:0 0 8px;flex-direction:column;align-items:stretch;cursor:pointer" onclick="togDesp('${tipo}')">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div class="di-l">
+            <div class="di-tipo">${TIPOS_IC[tipo]||'📦'} ${tipo}</div>
+            <div class="di-sub">${g.items.length} registro${g.items.length>1?'s':''} · ${ultima?new Date(ultima+'T12:00:00').toLocaleDateString('pt-BR'):''}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="di-val">${fmt(g.total)}</div>
+            <span style="color:var(--tx3);font-size:14px" id="arr-${tipo.replace(/[^a-z]/gi,'_')}">▼</span>
+          </div>
         </div>
-        <div class="di-val">${fmt(g.total)}</div>
-      </div>`).join('');
+        <div id="desp-det-${tipo.replace(/[^a-z]/gi,'_')}" style="display:none;margin-top:10px;border-top:0.5px solid var(--br);padding-top:8px">
+          ${g.items.map(d=>`
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:0.5px solid var(--br)">
+              <div>
+                <div style="font-size:13px;font-weight:500">${d.estab||d.tipo}</div>
+                <div style="font-size:11px;color:var(--tx3)">${d.cidade?d.cidade+' · ':''}${d.data?new Date(d.data+'T12:00:00').toLocaleDateString('pt-BR'):''}${d.litros?' · '+d.litros+'L':''}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="font-size:13px;font-weight:700;color:var(--rd)">${fmt(d.valor)}</div>
+                <button onclick="event.stopPropagation();delDesp('${d.id}')" style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:15px;padding:2px 4px">✕</button>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+    }).join('');
   } else {dsSec.style.display='none';}
 
   // resumo
@@ -641,7 +713,9 @@ function iniciarViagem(){
   if(!odo||odo<=0){alert('Informe o odômetro de saída.');return;}
   vAtual.odoIni=odo;
   vAtual.status='ativa';
-  vAtual.dtInicio=hj();
+  // usa a data do primeiro frete como data real de início
+  const primeiraData=vAtual.fretes.length>0?vAtual.fretes[0].data:hj();
+  vAtual.dtInicio=primeiraData||hj();
   save();fM('mIniciar');
   updViagemModal();
   document.getElementById('mViagem').classList.add('open');
@@ -677,13 +751,46 @@ function finalizarViagem(){
   render();
 }
 
+function togDesp(tipo){
+  const key=tipo.replace(/[^a-z]/gi,'_');
+  const det=document.getElementById('desp-det-'+key);
+  const arr=document.getElementById('arr-'+key);
+  if(!det)return;
+  const aberto=det.style.display!=='none';
+  det.style.display=aberto?'none':'block';
+  if(arr)arr.textContent=aberto?'▼':'▲';
+}
+
+function delDesp(id){
+  if(!confirm('Deletar este lançamento?'))return;
+  vAtual.despesas=vAtual.despesas.filter(d=>d.id!==id);
+  save();updViagemModal();
+}
+
+function maskMoeda(el){
+  let v=el.value.replace(/\D/g,'');
+  if(!v){el.value='';return;}
+  v=(parseInt(v)/100).toFixed(2);
+  const p=v.split('.');
+  p[0]=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+  el.value=p.join(',');
+}
+
+function getMoeda(el){
+  return parseFloat(el.value.replace(/\./g,'').replace(',','.'))||0;
+}
+
 function abrirDespesa(){
+  if(vAtual.status==='rascunho'){
+    alert('⚠ Inicie a viagem primeiro antes de lançar despesas!');
+    return;
+  }
   document.getElementById('d-tipo').value='';
   document.getElementById('d-valor').value='';
   document.getElementById('d-data').value=hj();
   document.getElementById('d-estab').value='';
   document.getElementById('d-cidade').value='';
-  document.getElementById('d-litros').value='';
+  document.getElementById('d-litros-calc').textContent='— L';
   document.getElementById('d-preco-l').value='';
   document.getElementById('d-obs').value='';
   document.getElementById('d-abast').style.display='none';
@@ -699,22 +806,30 @@ function updTipo(){
 }
 
 function calcAbast(){
-  const l=parseFloat(document.getElementById('d-litros').value)||0;
+  const vl=getMoeda(document.getElementById('d-valor'));
   const p=parseFloat(document.getElementById('d-preco-l').value)||0;
-  if(l>0&&p>0)document.getElementById('d-valor').value=(l*p).toFixed(2);
+  const el=document.getElementById('d-litros-calc');
+  if(vl>0&&p>0){
+    const litros=vl/p;
+    el.textContent=litros.toFixed(2).replace('.',',')+' L';
+    el.style.color='var(--tl)';
+  } else {
+    el.textContent='— L';
+    el.style.color='var(--tx3)';
+  }
 }
 
 function salvarDespesa(){
   const tipo=document.getElementById('d-tipo').value;
   if(!tipo){alert('Selecione o tipo de despesa.');return;}
-  const vl=parseFloat(document.getElementById('d-valor').value);
+  const vl=getMoeda(document.getElementById('d-valor'));
   if(!vl||vl<=0){alert('Informe o valor.');return;}
   const desp={
     id:uid(),tipo,valor:vl,
     data:document.getElementById('d-data').value,
     estab:document.getElementById('d-estab').value.trim(),
     cidade:document.getElementById('d-cidade').value.trim(),
-    litros:parseFloat(document.getElementById('d-litros').value)||0,
+    litros:parseFloat(document.getElementById('d-preco-l').value)>0?getMoeda(document.getElementById('d-valor'))/(parseFloat(document.getElementById('d-preco-l').value)):0,
     precoL:parseFloat(document.getElementById('d-preco-l').value)||0,
     obs:document.getElementById('d-obs').value.trim()
   };
@@ -812,7 +927,81 @@ function renderRel(){
 function setRelP(p){relPeriodo=p;renderRel();}
 
 document.querySelectorAll('.mbg').forEach(m=>m.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');}));
-G('viagens');load();
+// FIREBASE
+const firebaseConfig={apiKey:"AIzaSyDXeD90XL3sX-jZSoGVzEbvAx6z6kgrYbY",authDomain:"meus-apps-geraldo.firebaseapp.com",projectId:"meus-apps-geraldo",storageBucket:"meus-apps-geraldo.firebasestorage.app",messagingSenderId:"986286852223",appId:"1:986286852223:web:ec83501091f9994d50174a"};
+firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth();
+let currentUser=null;
+
+auth.onAuthStateChanged(user=>{
+  if(user){
+    currentUser=user;
+    document.getElementById('loginWrap').style.display='none';
+    document.getElementById('userBar').style.display='flex';
+    document.getElementById('userEmail').textContent=user.email;
+    G('viagens');load();
+  } else {
+    currentUser=null;
+    document.getElementById('loginWrap').style.display='flex';
+    document.getElementById('userBar').style.display='none';
+  }
+});
+
+let loginTab='entrar';
+function setLoginTab(t){
+  loginTab=t;
+  document.getElementById('tab-entrar').classList.toggle('on',t==='entrar');
+  document.getElementById('tab-cadastrar').classList.toggle('on',t==='cadastrar');
+  document.getElementById('wrap-confirma').style.display=t==='cadastrar'?'block':'none';
+  document.getElementById('login-forgot').style.display=t==='entrar'?'block':'none';
+  document.getElementById('login-btn-action').textContent=t==='entrar'?'Entrar':'Cadastrar';
+  document.getElementById('login-err').classList.remove('show');
+  document.getElementById('login-ok').classList.remove('show');
+}
+
+async function fazerLogin(){
+  const email=document.getElementById('login-email').value.trim();
+  const senha=document.getElementById('login-senha').value;
+  const err=document.getElementById('login-err');
+  err.classList.remove('show');
+  if(!email||!senha){err.textContent='Preencha email e senha.';err.classList.add('show');return;}
+  try{
+    if(loginTab==='entrar'){
+      await auth.signInWithEmailAndPassword(email,senha);
+    } else {
+      const confirma=document.getElementById('login-confirma').value;
+      if(senha!==confirma){err.textContent='As senhas não coincidem.';err.classList.add('show');return;}
+      if(senha.length<6){err.textContent='Senha deve ter pelo menos 6 caracteres.';err.classList.add('show');return;}
+      await auth.createUserWithEmailAndPassword(email,senha);
+    }
+  }catch(e){
+    const msgs={'auth/invalid-email':'Email inválido.','auth/user-not-found':'Usuário não encontrado.','auth/wrong-password':'Senha incorreta.','auth/email-already-in-use':'Email já cadastrado.','auth/weak-password':'Senha muito fraca.','auth/invalid-credential':'Email ou senha incorretos.'};
+    err.textContent=msgs[e.code]||'Erro: '+e.message;
+    err.classList.add('show');
+  }
+}
+
+async function recuperarSenha(){
+  const email=document.getElementById('login-email').value.trim();
+  const err=document.getElementById('login-err');
+  const ok=document.getElementById('login-ok');
+  err.classList.remove('show');ok.classList.remove('show');
+  if(!email){err.textContent='Digite seu email para recuperar a senha.';err.classList.add('show');return;}
+  try{
+    await auth.sendPasswordResetEmail(email);
+    ok.textContent='Email de recuperação enviado! Verifique sua caixa de entrada.';
+    ok.classList.add('show');
+  }catch(e){
+    err.textContent='Erro ao enviar email. Verifique se o email está correto.';
+    err.classList.add('show');
+  }
+}
+
+function sair(){
+  if(confirm('Deseja sair da sua conta?'))auth.signOut();
+}
+
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('loginWrap').style.display!=='none')fazerLogin();});
 </script>
 </body>
 </html>
