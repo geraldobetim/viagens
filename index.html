@@ -129,6 +129,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .pf-row{display:flex;gap:8px;margin:0 16px 12px;flex-wrap:wrap}
 .pf-pill{padding:7px 14px;border:1.5px solid var(--br);border-radius:20px;font-size:12px;font-weight:600;color:var(--tx3);background:none;cursor:pointer}
 .pf-pill.on{border-color:var(--tl);color:var(--tl);background:rgba(45,212,176,.08)}
+/* FILTRO VIAGENS */
+.filtro-opt{display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:0.5px solid var(--br);cursor:pointer}
+.filtro-opt:last-child{border-bottom:none}
+.filtro-opt-lbl{font-size:16px;color:var(--tx)}
+.filtro-radio{width:22px;height:22px;border-radius:50%;border:2px solid var(--br);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.filtro-radio.on{border-color:var(--tl);background:var(--tl)}
+.filtro-radio.on::after{content:'';width:8px;height:8px;border-radius:50%;background:#0d2525}
+/* BOTÃO + NA CARD ATIVA */
+.ca-plus{width:36px;height:36px;border-radius:50%;background:var(--tl);border:none;color:#0d2525;font-size:22px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .login-wrap{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 24px}
 .login-logo{font-size:48px;margin-bottom:8px}
 .login-title{font-size:24px;font-weight:700;margin-bottom:4px}
@@ -187,16 +196,32 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div id="s-viagens" class="sc active">
   <div class="topb">
     <div class="topb-t">🚛 Minhas Viagens</div>
-    <button onclick="G('relatorio')" style="background:none;border:none;color:var(--tl);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px">
-      <svg style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
-      Relatório
-    </button>
+    <div style="display:flex;gap:12px;align-items:center">
+      <button onclick="abrirFiltro()" style="background:none;border:none;color:var(--tl);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px">
+        <svg style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2" viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+        Filtrar
+      </button>
+      <button onclick="G('relatorio')" style="background:none;border:none;color:var(--tl);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px">
+        <svg style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+        Relatório
+      </button>
+    </div>
   </div>
   <div id="card-ativa"></div>
   <div id="lista-viagens">
     <div class="empty"><div class="empty-ic">🛣️</div><div class="empty-tx">Você ainda não adicionou uma viagem.</div></div>
   </div>
   <button class="fab" onclick="novaViagem()">+ Nova Viagem</button>
+</div>
+
+<!-- MODAL FILTRO -->
+<div class="mbg" id="mFiltro">
+<div class="modal">
+  <div class="mh"></div>
+  <div class="mh-row"><div class="mt">Filtrar Viagens</div><button class="mx" onclick="fM('mFiltro')">✕</button></div>
+  <div id="filtro-opts"></div>
+  <button class="bok" onclick="aplicarFiltro()" style="margin-top:16px">Aplicar</button>
+</div>
 </div>
 
 <!-- RELATÓRIO -->
@@ -446,45 +471,83 @@ function G(p){
   if(p==='relatorio')renderRel();
 }
 
+let listFiltro='todos'; // 'todos' | 'ativa' | 'finalizada'
+
+function abrirFiltro(){
+  const opts=[
+    {id:'todos',lbl:'Todos'},
+    {id:'ativa',lbl:'Em andamento'},
+    {id:'finalizada',lbl:'Finalizadas'},
+  ];
+  document.getElementById('filtro-opts').innerHTML=opts.map(o=>`
+    <div class="filtro-opt" onclick="selFiltro('${o.id}')">
+      <span class="filtro-opt-lbl">${o.lbl}</span>
+      <div class="filtro-radio${listFiltro===o.id?' on':''}" id="fr-${o.id}"></div>
+    </div>`).join('');
+  document.getElementById('mFiltro').classList.add('open');
+}
+
+function selFiltro(id){
+  listFiltro=id;
+  document.querySelectorAll('.filtro-radio').forEach(el=>el.classList.remove('on'));
+  const el=document.getElementById('fr-'+id);
+  if(el)el.classList.add('on');
+}
+
+function aplicarFiltro(){
+  fM('mFiltro');
+  render();
+}
+
 function render(){
-  const ativa=D.viagens.find(v=>v.status==='ativa');
+  const ativas=D.viagens.filter(v=>v.status==='ativa').sort((a,b)=>new Date(b.dtInicio)-new Date(a.dtInicio));
+  const finalizadas=D.viagens.filter(v=>v.status==='finalizada').sort((a,b)=>new Date(b.dtInicio)-new Date(a.dtInicio));
+  const rascunhos=D.viagens.filter(v=>v.status==='rascunho');
+
   const ca=document.getElementById('card-ativa');
-  if(ativa){
-    const orig=ativa.fretes[0]?.origem||'—';
-    const dest=ativa.fretes[ativa.fretes.length-1]?.destino||'—';
-    ca.innerHTML=`
-      <div class="sec-lbl">Em Andamento</div>
-      <div class="card-ativa" onclick="abrirViagemModal('${ativa.id}')">
+  const el=document.getElementById('lista-viagens');
+  let hAtivas='', hLista='';
+
+  // --- SEÇÃO EM ANDAMENTO (sempre visível, não afetada pelo filtro de lista) ---
+  if(ativas.length){
+    hAtivas+=`<div class="sec-lbl">Em Andamento</div>`;
+    hAtivas+=ativas.map(v=>{
+      const orig=v.fretes[0]?.origem||'—';
+      const dest=v.fretes[v.fretes.length-1]?.destino||'—';
+      return`<div class="card-ativa" onclick="abrirViagemModal('${v.id}')">
         <div class="ca-row">
-          <div class="ca-left">
+          <div class="ca-left" style="flex:1">
             <div class="ca-status">🟢 Em andamento</div>
             <div class="ca-rota">${orig.split(',')[0]} → ${dest.split(',')[0]}</div>
-            <div class="ca-data">Início: ${new Date(ativa.dtInicio+'T12:00:00').toLocaleDateString('pt-BR')}</div>
+            <div class="ca-data">Início: ${v.dtInicio?new Date(v.dtInicio+'T12:00:00').toLocaleDateString('pt-BR'):'—'}</div>
           </div>
-          <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
-            <button class="ca-btn" onclick="event.stopPropagation();abrirViagemModal('${ativa.id}')">Ver detalhes</button>
-          </div>
+          <button class="ca-plus" onclick="event.stopPropagation();abrirViagemModal('${v.id}')">+</button>
         </div>
       </div>`;
-  } else ca.innerHTML='';
+    }).join('');
+  }
+  ca.innerHTML=hAtivas;
 
-  const fin=D.viagens.filter(v=>v.status==='finalizada').sort((a,b)=>new Date(b.dtInicio)-new Date(a.dtInicio));
-  const el=document.getElementById('lista-viagens');
-  const rascunho=D.viagens.find(v=>v.status==='rascunho');
+  // --- LISTA (afetada pelo filtro) ---
+  const mostrarAtivas = listFiltro==='todos' || listFiltro==='ativa';
+  const mostrarFin    = listFiltro==='todos' || listFiltro==='finalizada';
 
-  let h='';
-  if(rascunho){
-    h+=`<div class="sec-lbl">Rascunho</div>
-    <div class="card" style="border-left:3px solid var(--am)" onclick="abrirViagemModal('${rascunho.id}')">
-      <div style="font-size:13px;color:var(--am);font-weight:600;margin-bottom:4px">⏸ Rascunho</div>
-      <div class="vc-rota">${rascunho.fretes.length} frete(s) cadastrado(s)</div>
-      <div style="font-size:12px;color:var(--tx3)">Toque para continuar</div>
-    </div>`;
+  // Rascunhos
+  if(listFiltro==='todos' && rascunhos.length){
+    rascunhos.forEach(v=>{
+      hLista+=`<div class="sec-lbl">Rascunho</div>
+      <div class="card" style="border-left:3px solid var(--am)" onclick="abrirViagemModal('${v.id}')">
+        <div style="font-size:13px;color:var(--am);font-weight:600;margin-bottom:4px">⏸ Rascunho</div>
+        <div class="vc-rota">${v.fretes.length} frete(s) cadastrado(s)</div>
+        <div style="font-size:12px;color:var(--tx3)">Toque para continuar</div>
+      </div>`;
+    });
   }
 
-  if(fin.length){
-    h+=`<div class="sec-lbl">Viagens finalizadas</div>`;
-    h+=fin.map(v=>{
+  // Finalizadas
+  if(mostrarFin && finalizadas.length){
+    hLista+=`<div class="sec-lbl">Finalizadas</div>`;
+    hLista+=finalizadas.map(v=>{
       const tf=v.fretes.reduce((s,f)=>s+f.valor,0);
       const td=v.despesas.reduce((s,d)=>s+d.valor,0);
       const sl=tf-td;
@@ -492,7 +555,7 @@ function render(){
       const rotas=v.fretes.map(f=>`${f.origem.split(',')[0]}→${f.destino.split(',')[0]}`).join(' · ');
       return`<div class="card" onclick="abrirViagemModal('${v.id}')">
         <div class="vc-rota">${rotas}</div>
-        <div class="vc-data">${new Date(v.dtInicio+'T12:00:00').toLocaleDateString('pt-BR')}${v.dtFim?' → '+new Date(v.dtFim+'T12:00:00').toLocaleDateString('pt-BR'):''} ${km?'· '+km+' km':''}</div>
+        <div class="vc-data">${v.dtInicio?new Date(v.dtInicio+'T12:00:00').toLocaleDateString('pt-BR'):'—'}${v.dtFim?' → '+new Date(v.dtFim+'T12:00:00').toLocaleDateString('pt-BR'):''} ${km?'· '+km+' km':''}</div>
         <div class="vc-tags">
           <div class="vc-tag"><div class="vc-tl">Frete</div><div class="vc-tv g">${fmt(tf)}</div></div>
           <div class="vc-tag"><div class="vc-tl">Despesas</div><div class="vc-tv r">${fmt(td)}</div></div>
@@ -502,17 +565,15 @@ function render(){
     }).join('');
   }
 
-  if(!h&&!ativa){
-    el.innerHTML=`<div class="empty"><div class="empty-ic">🛣️</div><div class="empty-tx">Você ainda não adicionou uma viagem.</div></div>`;
+  if(!hLista && !ativas.length){
+    el.innerHTML=`<div class="empty"><div class="empty-ic">🛣️</div><div class="empty-tx">Nenhuma viagem encontrada.</div></div>`;
   } else {
-    el.innerHTML=h;
+    el.innerHTML=hLista;
   }
 }
 
-// NOVA VIAGEM
+// NOVA VIAGEM — sem restrição de viagens ativas
 function novaViagem(){
-  // verifica se já tem rascunho ou ativa
-  if(D.viagens.find(v=>v.status==='ativa')){alert('Já há uma viagem em andamento. Finalize-a antes de iniciar outra.');return;}
   vAtual={id:uid(),fretes:[],despesas:[],status:'rascunho',dtCriacao:hj(),odoIni:null,odoFim:null,dtInicio:null,dtFim:null};
   D.viagens.push(vAtual);
   save();
