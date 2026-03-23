@@ -448,67 +448,75 @@ function G(p){
 }
 
 function render(){
-  const ativa=D.viagens.find(v=>v.status==='ativa');
   const ca=document.getElementById('card-ativa');
-  if(ativa){
-    const orig=ativa.fretes[0]?.origem||'—';
-    const dest=ativa.fretes[ativa.fretes.length-1]?.destino||'—';
-    ca.innerHTML=`
-      <div class="sec-lbl">Em Andamento</div>
-      <div class="card-ativa" onclick="abrirViagemModal('${ativa.id}')">
-        <div class="ca-row">
-          <div class="ca-left">
-            <div class="ca-status">🟢 Em andamento</div>
-            <div class="ca-rota">${orig.split(',')[0]} → ${dest.split(',')[0]}</div>
-            <div class="ca-data">Início: ${new Date(ativa.dtInicio+'T12:00:00').toLocaleDateString('pt-BR')}</div>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
-            <button class="ca-btn" onclick="event.stopPropagation();abrirViagemModal('${ativa.id}')">Ver detalhes</button>
-          </div>
-        </div>
-      </div>`;
-  } else ca.innerHTML='';
+  ca.innerHTML='';
 
-  const fin=D.viagens.filter(v=>v.status==='finalizada').sort((a,b)=>new Date(b.dtInicio)-new Date(a.dtInicio));
+  // todas as viagens ordenadas por data
+  const todas=D.viagens.filter(v=>v.dtInicio||v.dtCriacao).sort((a,b)=>new Date(b.dtInicio||b.dtCriacao)-new Date(a.dtInicio||a.dtCriacao));
+  const ativas=D.viagens.filter(v=>v.status==='ativa');
+  const encerradas=D.viagens.filter(v=>v.status==='encerrada');
+  const rascunhos=D.viagens.filter(v=>v.status==='rascunho');
+
   const el=document.getElementById('lista-viagens');
-  const rascunho=D.viagens.find(v=>v.status==='rascunho');
-
   let h='';
-  if(rascunho){
-    h+=`<div class="sec-lbl">Rascunho</div>
-    <div class="card" style="border-left:3px solid var(--am)" onclick="abrirViagemModal('${rascunho.id}')">
-      <div style="font-size:13px;color:var(--am);font-weight:600;margin-bottom:4px">⏸ Rascunho</div>
-      <div class="vc-rota">${rascunho.fretes.length} frete(s) cadastrado(s)</div>
-      <div style="font-size:12px;color:var(--tx3)">Toque para continuar</div>
-    </div>`;
-  }
 
-  if(fin.length){
-    h+=`<div class="sec-lbl">Viagens finalizadas</div>`;
-    h+=fin.map(v=>{
-      const tf=v.fretes.reduce((s,f)=>s+f.valor,0);
-      const td=v.despesas.reduce((s,d)=>s+d.valor,0);
-      const sl=tf-td;
-      const km=v.odoFim&&v.odoIni?v.odoFim-v.odoIni:0;
-      const rotas=v.fretes.map(f=>`${f.origem.split(',')[0]}→${f.destino.split(',')[0]}`).join(' · ');
-      const statusTag=v.status==='ativa'?'<span style="color:var(--am);font-weight:600">● Em aberto</span>':v.status==='encerrada'?'<span style="color:var(--tl);font-weight:600">● Encerrada</span>':v.status==='finalizada'?'<span style="color:var(--tl);font-weight:600">✅ Paga</span>':'<span style="color:var(--tx3)">●</span>';
-      return`<div class="card" onclick="abrirViagemModal('${v.id}')">
-        <div class="vc-rota">${rotas}</div>
-        <div class="vc-data">${new Date(v.dtInicio+'T12:00:00').toLocaleDateString('pt-BR')}${v.dtFim?' → '+new Date(v.dtFim+'T12:00:00').toLocaleDateString('pt-BR'):''} ${km?'· '+km+' km':''} · ${statusTag}</div>
-        <div class="vc-tags">
-          <div class="vc-tag"><div class="vc-tl">Frete</div><div class="vc-tv g">${fmt(tf)}</div></div>
-          <div class="vc-tag"><div class="vc-tl">Despesas</div><div class="vc-tv r">${fmt(td)}</div></div>
-          <div class="vc-tag"><div class="vc-tl">${sl>=0?'Lucro':'Prejuízo'}</div><div class="vc-tv ${sl>=0?'g':'r'}">${fmt(sl)}</div></div>
-        </div>
+  // rascunhos
+  if(rascunhos.length){
+    h+=`<div class="sec-lbl">Rascunho</div>`;
+    rascunhos.forEach(v=>{
+      h+=`<div class="card" style="border-left:3px solid var(--am)" onclick="abrirViagemModal('${v.id}')">
+        <div style="font-size:13px;color:var(--am);font-weight:600;margin-bottom:4px">⏸ Rascunho</div>
+        <div class="vc-rota">${v.fretes.length} frete(s) cadastrado(s)</div>
+        <div style="font-size:12px;color:var(--tx3)">Toque para continuar</div>
       </div>`;
-    }).join('');
+    });
   }
 
-  if(!h&&!ativa){
+  // viagens em aberto (ativas)
+  if(ativas.length){
+    h+=`<div class="sec-lbl">Em andamento</div>`;
+    ativas.forEach(v=>{ h+=cardViagemHtml(v); });
+  }
+
+  // viagens encerradas (aguardando pagamento)
+  if(encerradas.length){
+    h+=`<div class="sec-lbl">Aguardando pagamento</div>`;
+    encerradas.forEach(v=>{ h+=cardViagemHtml(v); });
+  }
+
+  // viagens finalizadas/pagas
+  const pagas=D.viagens.filter(v=>v.status==='finalizada').sort((a,b)=>new Date(b.dtInicio)-new Date(a.dtInicio));
+  if(pagas.length){
+    h+=`<div class="sec-lbl">Finalizadas</div>`;
+    pagas.forEach(v=>{ h+=cardViagemHtml(v); });
+  }
+
+  if(!h){
     el.innerHTML=`<div class="empty"><div class="empty-ic">🛣️</div><div class="empty-tx">Você ainda não adicionou uma viagem.</div></div>`;
   } else {
     el.innerHTML=h;
   }
+}
+
+function cardViagemHtml(v){
+  const tf=v.fretes.reduce((s,f)=>s+f.valor,0);
+  const td=v.despesas.reduce((s,d)=>s+d.valor,0);
+  const sl=tf-td;
+  const km=v.odoFim&&v.odoIni?v.odoFim-v.odoIni:0;
+  const rotas=v.fretes.length?v.fretes.map(f=>`${f.origem.split(',')[0]}→${f.destino.split(',')[0]}`).join(' · '):'Sem rota';
+  const statusTag=v.status==='ativa'?`<span style="color:var(--am);font-weight:600">● Em aberto</span>`:v.status==='encerrada'?`<span style="color:var(--tl);font-weight:600">⏳ Aguardando pagamento</span>`:v.status==='finalizada'?`<span style="color:var(--tl);font-weight:600">✅ Paga</span>`:`<span style="color:var(--tx3)">●</span>`;
+  const bordaColor=v.status==='ativa'?'var(--am)':v.status==='encerrada'?'var(--tl2)':'transparent';
+  return`<div class="card" style="border-left:3px solid ${bordaColor}" onclick="abrirViagemModal('${v.id}')">
+    <div class="vc-rota">${rotas}</div>
+    <div class="vc-data">${v.dtInicio?new Date(v.dtInicio+'T12:00:00').toLocaleDateString('pt-BR'):'—'}${v.dtFim?' → '+new Date(v.dtFim+'T12:00:00').toLocaleDateString('pt-BR'):''} ${km?'· '+km+' km':''}</div>
+    <div style="margin-bottom:8px">${statusTag}</div>
+    <div class="vc-tags">
+      <div class="vc-tag"><div class="vc-tl">Frete</div><div class="vc-tv g">${fmt(tf)}</div></div>
+      <div class="vc-tag"><div class="vc-tl">Despesas</div><div class="vc-tv r">${fmt(td)}</div></div>
+      <div class="vc-tag"><div class="vc-tl">${sl>=0?'Lucro':'Prejuízo'}</div><div class="vc-tv ${sl>=0?'g':'r'}">${fmt(sl)}</div></div>
+    </div>
+  </div>`;
+}
 }
 
 // NOVA VIAGEM
