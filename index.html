@@ -318,7 +318,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
   <div class="btn-row">
     <button class="bca" onclick="abrirFinalizar()" id="btn-finalizar">Finalizar</button>
-    <button class="bok" style="width:auto;padding:13px 22px" onclick="abrirDespesa()">+ Nova Despesa</button>
+    <button class="bok" style="width:auto;padding:13px 22px" id="btn-nova-desp" onclick="abrirDespesa()">+ Nova Despesa</button>
   </div>
 </div>
 </div>
@@ -511,9 +511,8 @@ function render(){
 
 // NOVA VIAGEM
 function novaViagem(){
-  // verifica se já tem rascunho ou ativa
-  if(D.viagens.find(v=>v.status==='ativa')){alert('Já há uma viagem em andamento. Finalize-a antes de iniciar outra.');return;}
-  vAtual={id:uid(),fretes:[],despesas:[],status:'rascunho',dtCriacao:hj(),odoIni:null,odoFim:null,dtInicio:null,dtFim:null};
+  // permite múltiplas viagens — sem bloqueio
+  vAtual={id:uid(),fretes:[],despesas:[],status:'rascunho',dtCriacao:hj(),odoIni:null,odoFim:null,dtInicio:null,dtFim:null,dtEncerrada:null};
   D.viagens.push(vAtual);
   save();
   fOrig='';fDest='';
@@ -653,6 +652,9 @@ function updViagemModal(){
               </div>
               <div style="display:flex;align-items:center;gap:8px">
                 <div style="font-size:13px;font-weight:700;color:var(--rd)">${fmt(d.valor)}</div>
+                <button onclick="event.stopPropagation();editarDesp('${d.id}')" style="background:none;border:none;color:var(--tl);cursor:pointer;padding:2px 4px;display:flex;align-items:center">
+                  <svg style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
                 <button onclick="event.stopPropagation();delDesp('${d.id}')" style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:15px;padding:2px 4px">✕</button>
               </div>
             </div>`).join('')}
@@ -695,11 +697,29 @@ function updViagemModal(){
   document.getElementById('ind-pct').textContent=tf>0?fmtN(pct)+'%':'—';
   document.getElementById('ind-liq-km').textContent=liqKm?fmt(liqKm)+'/km':'—';
 
-  // botão finalizar
+  // botões de ação
   const bf=document.getElementById('btn-finalizar');
-  if(vAtual.status==='finalizada'){bf.style.display='none';}
-  else if(vAtual.status==='rascunho'){bf.textContent='Iniciar viagem';bf.onclick=abrirIniciar;}
-  else{bf.textContent='Finalizar';bf.onclick=abrirFinalizar;}
+  const bnd=document.getElementById('btn-nova-desp');
+  if(vAtual.status==='finalizada'){
+    bf.style.display='none';
+    if(bnd)bnd.style.display='none';
+  } else if(vAtual.status==='rascunho'){
+    bf.style.display='inline-block';
+    bf.textContent='Iniciar viagem';
+    bf.onclick=abrirIniciar;
+    if(bnd)bnd.style.display='none';
+  } else if(vAtual.status==='ativa'){
+    bf.style.display='inline-block';
+    bf.textContent='Encerrar viagem';
+    bf.onclick=abrirEncerrar;
+    if(bnd)bnd.style.display='inline-block';
+  } else if(vAtual.status==='encerrada'){
+    bf.style.display='inline-block';
+    bf.textContent='✅ Recebi o pagamento';
+    bf.style.background='var(--tl)';
+    bf.onclick=receberPagamento;
+    if(bnd)bnd.style.display='none';
+  }
 }
 
 function abrirIniciar(){
@@ -722,12 +742,15 @@ function iniciarViagem(){
   render();
 }
 
-function abrirFinalizar(){
+function abrirEncerrar(){
   document.getElementById('odo-chegada').value='';
   document.getElementById('fin-prev').innerHTML='';
-  document.getElementById('mViagem').classList.remove('open');
   document.getElementById('mFinalizar').classList.add('open');
+  // update modal title
+  document.querySelector('#mFinalizar .mt').textContent='Encerrar Viagem';
 }
+
+function abrirFinalizar(){abrirEncerrar();}
 
 function prevFinalizar(){
   const odoF=parseInt(document.getElementById('odo-chegada').value)||0;
@@ -743,11 +766,20 @@ function finalizarViagem(){
   if(!odoF||odoF<=0){alert('Informe o odômetro de chegada.');return;}
   if(odoF<=(vAtual.odoIni||0)){alert('Odômetro final deve ser maior que o inicial.');return;}
   vAtual.odoFim=odoF;
-  vAtual.status='finalizada';
-  vAtual.dtFim=hj();
+  vAtual.status='encerrada';
+  vAtual.dtEncerrada=hj();
   save();fM('mFinalizar');
   updViagemModal();
   document.getElementById('mViagem').classList.add('open');
+  render();
+}
+
+function receberPagamento(){
+  if(!confirm('Confirmar recebimento do pagamento?\n\nIsso vai marcar a viagem como finalizada.'))return;
+  vAtual.status='finalizada';
+  vAtual.dtFim=hj();
+  save();
+  updViagemModal();
   render();
 }
 
@@ -759,6 +791,33 @@ function togDesp(tipo){
   const aberto=det.style.display!=='none';
   det.style.display=aberto?'none':'block';
   if(arr)arr.textContent=aberto?'▼':'▲';
+}
+
+function editarDesp(id){
+  const d=vAtual.despesas.find(x=>x.id===id);
+  if(!d)return;
+  // guarda o id sendo editado
+  document.getElementById('mDespesa').dataset.editId=id;
+  // preenche os campos
+  document.getElementById('d-tipo').value=d.tipo;
+  updTipo();
+  // valor com máscara
+  const cents=Math.round(d.valor*100).toString();
+  const v=(parseInt(cents)/100).toFixed(2);
+  const pts=v.split('.');pts[0]=pts[0].replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+  document.getElementById('d-valor').value=pts.join(',');
+  document.getElementById('d-data').value=d.data||hj();
+  document.getElementById('d-estab').value=d.estab||'';
+  document.getElementById('d-cidade').value=d.cidade||'';
+  document.getElementById('d-preco-l').value=d.precoL||'';
+  document.getElementById('d-obs').value=d.obs||'';
+  if(d.obs){document.getElementById('d-obs-wrap').style.display='block';document.getElementById('d-obs-link').style.display='none';}
+  // atualiza litros calculados
+  calcAbast();
+  // muda título do modal
+  document.querySelector('#mDespesa .mt').textContent='Editar Despesa';
+  document.getElementById('mViagem').classList.remove('open');
+  document.getElementById('mDespesa').classList.add('open');
 }
 
 function delDesp(id){
@@ -785,6 +844,8 @@ function abrirDespesa(){
     alert('⚠ Inicie a viagem primeiro antes de lançar despesas!');
     return;
   }
+  delete document.getElementById('mDespesa').dataset.editId;
+  document.querySelector('#mDespesa .mt').textContent='Nova Despesa';
   document.getElementById('d-tipo').value='';
   document.getElementById('d-valor').value='';
   document.getElementById('d-data').value=hj();
@@ -824,8 +885,9 @@ function salvarDespesa(){
   if(!tipo){alert('Selecione o tipo de despesa.');return;}
   const vl=getMoeda(document.getElementById('d-valor'));
   if(!vl||vl<=0){alert('Informe o valor.');return;}
-  const desp={
-    id:uid(),tipo,valor:vl,
+  const editId=document.getElementById('mDespesa').dataset.editId;
+  const dadosDesp={
+    tipo,valor:vl,
     data:document.getElementById('d-data').value,
     estab:document.getElementById('d-estab').value.trim(),
     cidade:document.getElementById('d-cidade').value.trim(),
@@ -833,7 +895,16 @@ function salvarDespesa(){
     precoL:parseFloat(document.getElementById('d-preco-l').value)||0,
     obs:document.getElementById('d-obs').value.trim()
   };
-  vAtual.despesas.push(desp);
+  if(editId){
+    // modo edição — atualiza o existente
+    const idx=vAtual.despesas.findIndex(d=>d.id===editId);
+    if(idx>=0)vAtual.despesas[idx]=Object.assign({id:editId},dadosDesp);
+    delete document.getElementById('mDespesa').dataset.editId;
+    document.querySelector('#mDespesa .mt').textContent='Nova Despesa';
+  } else {
+    // novo lançamento
+    vAtual.despesas.push({id:uid(),...dadosDesp});
+  }
   save();fM('mDespesa');
   updViagemModal();
   document.getElementById('mViagem').classList.add('open');
