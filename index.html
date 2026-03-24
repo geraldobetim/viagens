@@ -219,7 +219,9 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 
 <!-- TELA DE LOGIN -->
 <div class="login-wrap" id="loginWrap">
-  <div class="login-logo">🚛</div>
+  <div class="login-logo">
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--tl)" stroke-width="1.8"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+  </div>
   <div class="login-title">Gestão de Viagens</div>
   <div class="login-sub">Controle profissional de rotas e despesas</div>
   <div class="login-card">
@@ -250,7 +252,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 <!-- VIAGENS -->
 <div id="s-viagens" class="sc active">
   <div class="topb">
-    <div class="topb-t">🚛 Minhas Viagens</div>
+    <div class="topb-t">Minhas Viagens</div>
     <button onclick="G('relatorio')" style="background:none;border:none;color:var(--tl);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px">
       <svg style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
       Relatório
@@ -283,7 +285,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 <!-- RELATÓRIO -->
 <div id="s-relatorio" class="sc">
   <div class="topb">
-    <div class="topb-t">📊 Relatório</div>
+    <div class="topb-t">Relatório</div>
     <button onclick="G('viagens')" style="background:none;border:none;color:var(--tl);font-size:13px;font-weight:600;cursor:pointer">← Voltar</button>
   </div>
   <div class="pf-row" id="pf-pills"></div>
@@ -292,7 +294,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 
 <!-- OPÇÕES -->
 <div id="s-opcoes" class="sc">
-  <div class="topb"><div class="topb-t">⚙️ Opções</div></div>
+  <div class="topb"><div class="topb-t">Opções</div></div>
   <div class="sec-lbl">Veículo</div>
   <div class="card">
     <div style="font-size:14px;color:var(--tx2);margin-bottom:4px">Ducato · ODE3E43</div>
@@ -576,8 +578,8 @@ function render(){
       return`<div class="card-andamento" onclick="abrirViagemModal('${v.id}')">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
           <div style="flex:1">
-            <div style="font-size:10px;color:var(--tl);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;display:flex;align-items:center;gap:5px"><span style="width:6px;height:6px;background:var(--tl);border-radius:50%;display:inline-block;animation:pulse 2s infinite"></span>Em Andamento</div>
-            <div style="font-size:19px;font-weight:800;color:var(--tx);letter-spacing:-.4px;margin-bottom:5px;line-height:1.2">${rotaLabel}</div>
+            <div style="font-size:10px;color:var(--tl);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Em Andamento</div>
+            <div style="font-size:19px;font-weight:800;color:var(--tx);letter-spacing:-.4px;margin-bottom:5px;line-height:1.3">${rotaLabel} <span style="font-size:11px;font-weight:600;color:var(--tl);background:rgba(45,212,176,.1);border:1px solid rgba(45,212,176,.2);padding:3px 10px;border-radius:20px;vertical-align:middle;letter-spacing:.3px">Em andamento</span></div>
             <div style="font-size:12px;color:var(--tx3);font-weight:500">Início em ${dtLabel}</div>
           </div>
           <div style="font-size:12px;color:var(--tx3);font-weight:600;padding-top:2px;flex-shrink:0">${dtLabel}</div>
@@ -613,7 +615,7 @@ function render(){
       const km=v.odoFim&&v.odoIni?v.odoFim-v.odoIni:0;
       const rotas=v.fretes.map(f=>`${f.origem.split(',')[0]}→${f.destino.split(',')[0]}`).join(' · ');
       return`<div class="card" onclick="abrirViagemModal('${v.id}')">
-        <div class="vc-rota">${rotas}</div>
+        <div class="vc-rota">${rotas} <span style="font-size:11px;font-weight:600;color:var(--tx3);background:var(--bg3);border:1px solid var(--br);padding:3px 10px;border-radius:20px;vertical-align:middle;letter-spacing:.3px">Encerrada</span></div>
         <div class="vc-data">${v.dtInicio?new Date(v.dtInicio+'T12:00:00').toLocaleDateString('pt-BR'):'—'}${v.dtFim?' → '+new Date(v.dtFim+'T12:00:00').toLocaleDateString('pt-BR'):''} ${km?'· '+km+' km':''}</div>
         <div class="vc-tags">
           <div class="vc-tag"><div class="vc-tl">Frete</div><div class="vc-tv g">${fmt(tf)}</div></div>
