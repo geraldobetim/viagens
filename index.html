@@ -129,6 +129,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .pf-row{display:flex;gap:8px;margin:0 16px 12px;flex-wrap:wrap}
 .pf-pill{padding:7px 14px;border:1.5px solid var(--br);border-radius:20px;font-size:12px;font-weight:600;color:var(--tx3);background:none;cursor:pointer}
 .pf-pill.on{border-color:var(--tl);color:var(--tl);background:rgba(45,212,176,.08)}
+/* FILTRO VIAGENS */
+.filtro-opt{display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:0.5px solid var(--br);cursor:pointer}
+.filtro-opt:last-child{border-bottom:none}
+.filtro-opt-lbl{font-size:16px;color:var(--tx)}
+.filtro-radio{width:22px;height:22px;border-radius:50%;border:2px solid var(--br);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.filtro-radio.on{border-color:var(--tl);background:var(--tl)}
+.filtro-radio.on::after{content:'';width:8px;height:8px;border-radius:50%;background:#0d2525}
+/* BOTÃO + NA CARD ATIVA */
+.ca-plus{width:36px;height:36px;border-radius:50%;background:var(--tl);border:none;color:#0d2525;font-size:22px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .login-wrap{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 24px}
 .login-logo{font-size:48px;margin-bottom:8px}
 .login-title{font-size:24px;font-weight:700;margin-bottom:4px}
@@ -193,10 +202,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </button>
   </div>
   <div id="card-ativa"></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 16px 10px">
+    <div style="font-size:13px;font-weight:700;color:var(--tx2)">Minhas Viagens</div>
+    <button onclick="abrirFiltro()" style="background:none;border:none;color:var(--tl);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px">
+      <svg style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2" viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+      Filtrar
+    </button>
+  </div>
   <div id="lista-viagens">
     <div class="empty"><div class="empty-ic">🛣️</div><div class="empty-tx">Você ainda não adicionou uma viagem.</div></div>
   </div>
   <button class="fab" onclick="novaViagem()">+ Nova Viagem</button>
+</div>
+
+<!-- MODAL FILTRO -->
+<div class="mbg" id="mFiltro">
+<div class="modal">
+  <div class="mh"></div>
+  <div class="mh-row"><div class="mt">Filtrar Viagens</div><button class="mx" onclick="fM('mFiltro')">✕</button></div>
+  <div id="filtro-opts"></div>
+  <button class="bok" onclick="aplicarFiltro()" style="margin-top:16px">Aplicar</button>
+</div>
 </div>
 
 <!-- RELATÓRIO -->
@@ -316,10 +342,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="ir"><span class="irl">% lucro em relação ao frete bruto</span><span class="irv" id="ind-pct">—</span></div>
     <div class="ir"><span class="irl">Lucro líquido por Km</span><span class="irv" id="ind-liq-km">—</span></div>
   </div>
-  <div id="mv-pagamento" style="display:none"></div>
   <div class="btn-row">
     <button class="bca" onclick="abrirFinalizar()" id="btn-finalizar">Finalizar</button>
-    <button class="bok" style="width:auto;padding:13px 22px" id="btn-nova-desp" onclick="abrirDespesa()">+ Nova Despesa</button>
+    <button class="bok" style="width:auto;padding:13px 22px" onclick="abrirDespesa()">+ Nova Despesa</button>
   </div>
 </div>
 </div>
@@ -447,24 +472,75 @@ function G(p){
   if(p==='relatorio')renderRel();
 }
 
-function render(){
-  const ca=document.getElementById('card-ativa');
-  ca.innerHTML='';
+let listFiltro='todos'; // 'todos' | 'ativa' | 'finalizada'
 
-  // todas as viagens ordenadas por data
-  const todas=D.viagens.filter(v=>v.dtInicio||v.dtCriacao).sort((a,b)=>new Date(b.dtInicio||b.dtCriacao)-new Date(a.dtInicio||a.dtCriacao));
-  const ativas=D.viagens.filter(v=>v.status==='ativa');
-  const encerradas=D.viagens.filter(v=>v.status==='encerrada');
+function abrirFiltro(){
+  const opts=[
+    {id:'todos',lbl:'Todos'},
+    {id:'ativa',lbl:'Em andamento'},
+    {id:'finalizada',lbl:'Finalizadas'},
+  ];
+  document.getElementById('filtro-opts').innerHTML=opts.map(o=>`
+    <div class="filtro-opt" onclick="selFiltro('${o.id}')">
+      <span class="filtro-opt-lbl">${o.lbl}</span>
+      <div class="filtro-radio${listFiltro===o.id?' on':''}" id="fr-${o.id}"></div>
+    </div>`).join('');
+  document.getElementById('mFiltro').classList.add('open');
+}
+
+function selFiltro(id){
+  listFiltro=id;
+  document.querySelectorAll('.filtro-radio').forEach(el=>el.classList.remove('on'));
+  const el=document.getElementById('fr-'+id);
+  if(el)el.classList.add('on');
+}
+
+function aplicarFiltro(){
+  fM('mFiltro');
+  render();
+}
+
+function render(){
+  const ativas=D.viagens.filter(v=>v.status==='ativa').sort((a,b)=>new Date(b.dtInicio)-new Date(a.dtInicio));
+  const finalizadas=D.viagens.filter(v=>v.status==='finalizada').sort((a,b)=>new Date(b.dtInicio)-new Date(a.dtInicio));
   const rascunhos=D.viagens.filter(v=>v.status==='rascunho');
 
+  const ca=document.getElementById('card-ativa');
   const el=document.getElementById('lista-viagens');
-  let h='';
+  let hAtivas='', hLista='';
 
-  // rascunhos
-  if(rascunhos.length){
-    h+=`<div class="sec-lbl">Rascunho</div>`;
+  // --- SEÇÃO EM ANDAMENTO (sempre visível, não afetada pelo filtro de lista) ---
+  if(ativas.length){
+    hAtivas+=`<div style="font-size:13px;font-weight:700;color:var(--tx2);padding:14px 16px 8px">Em Andamento</div>`;
+    hAtivas+=ativas.map(v=>{
+      const orig=v.fretes[0]?.origem||'—';
+      const dest=v.fretes[v.fretes.length-1]?.destino||'—';
+      const hoje=hj();
+      const dtLabel=v.dtInicio===hoje?'Hoje':v.dtInicio?new Date(v.dtInicio+'T12:00:00').toLocaleDateString('pt-BR'):'—';
+      const rotaLabel=orig===dest?orig.split(',')[0]:`${orig.split(',')[0]} → ${dest.split(',')[0]}`;
+      return`<div style="background:var(--bg2);border-radius:var(--r);margin:0 16px 10px;padding:16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.18)" onclick="abrirViagemModal('${v.id}')">
+        <div style="flex:1">
+          <div style="font-size:11px;color:var(--tx3);margin-bottom:4px">Em Andamento</div>
+          <div style="font-size:17px;font-weight:700;color:var(--tl);margin-bottom:3px">${rotaLabel}</div>
+          <div style="font-size:12px;color:var(--tx3)">Início em ${dtLabel}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+          <div style="font-size:11px;color:var(--tx3)">${dtLabel}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  ca.innerHTML=hAtivas;
+
+  // --- LISTA (afetada pelo filtro) ---
+  const mostrarAtivas = listFiltro==='todos' || listFiltro==='ativa';
+  const mostrarFin    = listFiltro==='todos' || listFiltro==='finalizada';
+
+  // Rascunhos
+  if(listFiltro==='todos' && rascunhos.length){
     rascunhos.forEach(v=>{
-      h+=`<div class="card" style="border-left:3px solid var(--am)" onclick="abrirViagemModal('${v.id}')">
+      hLista+=`<div class="sec-lbl">Rascunho</div>
+      <div class="card" style="border-left:3px solid var(--am)" onclick="abrirViagemModal('${v.id}')">
         <div style="font-size:13px;color:var(--am);font-weight:600;margin-bottom:4px">⏸ Rascunho</div>
         <div class="vc-rota">${v.fretes.length} frete(s) cadastrado(s)</div>
         <div style="font-size:12px;color:var(--tx3)">Toque para continuar</div>
@@ -472,57 +548,37 @@ function render(){
     });
   }
 
-  // viagens em aberto (ativas)
-  if(ativas.length){
-    h+=`<div class="sec-lbl">Em andamento</div>`;
-    ativas.forEach(v=>{ h+=cardViagemHtml(v); });
+  // Finalizadas
+  if(mostrarFin && finalizadas.length){
+    hLista+=`<div class="sec-lbl">Finalizadas</div>`;
+    hLista+=finalizadas.map(v=>{
+      const tf=v.fretes.reduce((s,f)=>s+f.valor,0);
+      const td=v.despesas.reduce((s,d)=>s+d.valor,0);
+      const sl=tf-td;
+      const km=v.odoFim&&v.odoIni?v.odoFim-v.odoIni:0;
+      const rotas=v.fretes.map(f=>`${f.origem.split(',')[0]}→${f.destino.split(',')[0]}`).join(' · ');
+      return`<div class="card" onclick="abrirViagemModal('${v.id}')">
+        <div class="vc-rota">${rotas}</div>
+        <div class="vc-data">${v.dtInicio?new Date(v.dtInicio+'T12:00:00').toLocaleDateString('pt-BR'):'—'}${v.dtFim?' → '+new Date(v.dtFim+'T12:00:00').toLocaleDateString('pt-BR'):''} ${km?'· '+km+' km':''}</div>
+        <div class="vc-tags">
+          <div class="vc-tag"><div class="vc-tl">Frete</div><div class="vc-tv g">${fmt(tf)}</div></div>
+          <div class="vc-tag"><div class="vc-tl">Despesas</div><div class="vc-tv r">${fmt(td)}</div></div>
+          <div class="vc-tag"><div class="vc-tl">${sl>=0?'Lucro':'Prejuízo'}</div><div class="vc-tv ${sl>=0?'g':'r'}">${fmt(sl)}</div></div>
+        </div>
+      </div>`;
+    }).join('');
   }
 
-  // viagens encerradas (aguardando pagamento)
-  if(encerradas.length){
-    h+=`<div class="sec-lbl">Aguardando pagamento</div>`;
-    encerradas.forEach(v=>{ h+=cardViagemHtml(v); });
-  }
-
-  // viagens finalizadas/pagas
-  const pagas=D.viagens.filter(v=>v.status==='finalizada').sort((a,b)=>new Date(b.dtInicio)-new Date(a.dtInicio));
-  if(pagas.length){
-    h+=`<div class="sec-lbl">Finalizadas</div>`;
-    pagas.forEach(v=>{ h+=cardViagemHtml(v); });
-  }
-
-  if(!h){
-    el.innerHTML=`<div class="empty"><div class="empty-ic">🛣️</div><div class="empty-tx">Você ainda não adicionou uma viagem.</div></div>`;
+  if(!hLista && !ativas.length){
+    el.innerHTML=`<div class="empty"><div class="empty-ic">🛣️</div><div class="empty-tx">Nenhuma viagem encontrada.</div></div>`;
   } else {
-    el.innerHTML=h;
+    el.innerHTML=hLista;
   }
 }
 
-function cardViagemHtml(v){
-  const tf=v.fretes.reduce((s,f)=>s+f.valor,0);
-  const td=v.despesas.reduce((s,d)=>s+d.valor,0);
-  const sl=tf-td;
-  const km=v.odoFim&&v.odoIni?v.odoFim-v.odoIni:0;
-  const rotas=v.fretes.length?v.fretes.map(f=>`${f.origem.split(',')[0]}→${f.destino.split(',')[0]}`).join(' · '):'Sem rota';
-  const statusTag=v.status==='ativa'?`<span style="color:var(--am);font-weight:600">● Em aberto</span>`:v.status==='encerrada'?`<span style="color:var(--tl);font-weight:600">⏳ Aguardando pagamento</span>`:v.status==='finalizada'?`<span style="color:var(--tl);font-weight:600">✅ Paga</span>`:`<span style="color:var(--tx3)">●</span>`;
-  const bordaColor=v.status==='ativa'?'var(--am)':v.status==='encerrada'?'var(--tl2)':'transparent';
-  return`<div class="card" style="border-left:3px solid ${bordaColor}" onclick="abrirViagemModal('${v.id}')">
-    <div class="vc-rota">${rotas}</div>
-    <div class="vc-data">${v.dtInicio?new Date(v.dtInicio+'T12:00:00').toLocaleDateString('pt-BR'):'—'}${v.dtFim?' → '+new Date(v.dtFim+'T12:00:00').toLocaleDateString('pt-BR'):''} ${km?'· '+km+' km':''}</div>
-    <div style="margin-bottom:8px">${statusTag}</div>
-    <div class="vc-tags">
-      <div class="vc-tag"><div class="vc-tl">Frete</div><div class="vc-tv g">${fmt(tf)}</div></div>
-      <div class="vc-tag"><div class="vc-tl">Despesas</div><div class="vc-tv r">${fmt(td)}</div></div>
-      <div class="vc-tag"><div class="vc-tl">${sl>=0?'Lucro':'Prejuízo'}</div><div class="vc-tv ${sl>=0?'g':'r'}">${fmt(sl)}</div></div>
-    </div>
-  </div>`;
-}
-}
-
-// NOVA VIAGEM
+// NOVA VIAGEM — sem restrição de viagens ativas
 function novaViagem(){
-  // permite múltiplas viagens — sem bloqueio
-  vAtual={id:uid(),fretes:[],despesas:[],status:'rascunho',dtCriacao:hj(),odoIni:null,odoFim:null,dtInicio:null,dtFim:null,dtEncerrada:null};
+  vAtual={id:uid(),fretes:[],despesas:[],status:'rascunho',dtCriacao:hj(),odoIni:null,odoFim:null,dtInicio:null,dtFim:null};
   D.viagens.push(vAtual);
   save();
   fOrig='';fDest='';
@@ -662,9 +718,6 @@ function updViagemModal(){
               </div>
               <div style="display:flex;align-items:center;gap:8px">
                 <div style="font-size:13px;font-weight:700;color:var(--rd)">${fmt(d.valor)}</div>
-                <button onclick="event.stopPropagation();editarDesp('${d.id}')" style="background:none;border:none;color:var(--tl);cursor:pointer;padding:2px 4px;display:flex;align-items:center">
-                  <svg style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                </button>
                 <button onclick="event.stopPropagation();delDesp('${d.id}')" style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:15px;padding:2px 4px">✕</button>
               </div>
             </div>`).join('')}
@@ -707,44 +760,11 @@ function updViagemModal(){
   document.getElementById('ind-pct').textContent=tf>0?fmtN(pct)+'%':'—';
   document.getElementById('ind-liq-km').textContent=liqKm?fmt(liqKm)+'/km':'—';
 
-  // info de pagamento se finalizada
-  const pagSec=document.getElementById('mv-pagamento');
-  if(vAtual.status==='finalizada'&&vAtual.pagamento){
-    pagSec.style.display='block';
-    pagSec.innerHTML=`
-      <div style="font-size:12px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Pagamento</div>
-      <div class="resumo" style="margin:0 0 10px">
-        <div class="rr"><span class="rrl">Data do recebimento</span><span class="rrv">${new Date(vAtual.pagamento.data+'T12:00:00').toLocaleDateString('pt-BR')}</span></div>
-        <div class="rr"><span class="rrl">Forma</span><span class="rrv">${vAtual.pagamento.forma}</span></div>
-        ${vAtual.pagamento.obs?`<div class="rr"><span class="rrl">Obs</span><span class="rrv" style="font-size:12px">${vAtual.pagamento.obs}</span></div>`:''}
-      </div>`;
-  } else {
-    pagSec.style.display='none';
-    pagSec.innerHTML='';
-  }
+  // botão finalizar
   const bf=document.getElementById('btn-finalizar');
-  const bnd=document.getElementById('btn-nova-desp');
-  if(vAtual.status==='finalizada'){
-    bf.style.display='none';
-    if(bnd)bnd.style.display='none';
-  } else if(vAtual.status==='rascunho'){
-    bf.style.display='inline-block';
-    bf.textContent='Iniciar viagem';
-    bf.onclick=abrirIniciar;
-    if(bnd)bnd.style.display='none';
-  } else if(vAtual.status==='ativa'){
-    bf.style.display='inline-block';
-    bf.textContent='Encerrar viagem';
-    bf.onclick=abrirEncerrar;
-    if(bnd)bnd.style.display='inline-block';
-  } else if(vAtual.status==='encerrada'){
-    bf.style.display='inline-block';
-    bf.textContent='💰 Registrar pagamento';
-    bf.style.background='var(--am)';
-    bf.style.color='#0d2525';
-    bf.onclick=abrirPagamento;
-    if(bnd)bnd.style.display='none';
-  }
+  if(vAtual.status==='finalizada'){bf.style.display='none';}
+  else if(vAtual.status==='rascunho'){bf.textContent='Iniciar viagem';bf.onclick=abrirIniciar;}
+  else{bf.textContent='Finalizar';bf.onclick=abrirFinalizar;}
 }
 
 function abrirIniciar(){
@@ -767,15 +787,12 @@ function iniciarViagem(){
   render();
 }
 
-function abrirEncerrar(){
+function abrirFinalizar(){
   document.getElementById('odo-chegada').value='';
   document.getElementById('fin-prev').innerHTML='';
+  document.getElementById('mViagem').classList.remove('open');
   document.getElementById('mFinalizar').classList.add('open');
-  // update modal title
-  document.querySelector('#mFinalizar .mt').textContent='Encerrar Viagem';
 }
-
-function abrirFinalizar(){abrirEncerrar();}
 
 function prevFinalizar(){
   const odoF=parseInt(document.getElementById('odo-chegada').value)||0;
@@ -791,36 +808,9 @@ function finalizarViagem(){
   if(!odoF||odoF<=0){alert('Informe o odômetro de chegada.');return;}
   if(odoF<=(vAtual.odoIni||0)){alert('Odômetro final deve ser maior que o inicial.');return;}
   vAtual.odoFim=odoF;
-  vAtual.status='encerrada';
-  vAtual.dtEncerrada=hj();
-  save();fM('mFinalizar');
-  updViagemModal();
-  document.getElementById('mViagem').classList.add('open');
-  render();
-}
-
-function abrirPagamento(){
-  const tf=vAtual.fretes.reduce((s,f)=>s+f.valor,0);
-  const td=vAtual.despesas.reduce((s,d)=>s+d.valor,0);
-  const sl=tf-td;
-  document.getElementById('pag-valor').textContent=fmt(sl);
-  document.getElementById('pag-data').value=hj();
-  document.getElementById('pag-obs').value='';
-  document.getElementById('pag-forma').value='PIX';
-  document.getElementById('mViagem').classList.remove('open');
-  document.getElementById('mPagamento').classList.add('open');
-}
-
-function confirmarPagamento(){
-  const data=document.getElementById('pag-data').value;
-  const forma=document.getElementById('pag-forma').value;
-  const obs=document.getElementById('pag-obs').value.trim();
-  if(!data){alert('Informe a data do recebimento.');return;}
   vAtual.status='finalizada';
-  vAtual.dtFim=data;
-  vAtual.pagamento={data,forma,obs};
-  save();
-  fM('mPagamento');
+  vAtual.dtFim=hj();
+  save();fM('mFinalizar');
   updViagemModal();
   document.getElementById('mViagem').classList.add('open');
   render();
@@ -834,33 +824,6 @@ function togDesp(tipo){
   const aberto=det.style.display!=='none';
   det.style.display=aberto?'none':'block';
   if(arr)arr.textContent=aberto?'▼':'▲';
-}
-
-function editarDesp(id){
-  const d=vAtual.despesas.find(x=>x.id===id);
-  if(!d)return;
-  // guarda o id sendo editado
-  document.getElementById('mDespesa').dataset.editId=id;
-  // preenche os campos
-  document.getElementById('d-tipo').value=d.tipo;
-  updTipo();
-  // valor com máscara
-  const cents=Math.round(d.valor*100).toString();
-  const v=(parseInt(cents)/100).toFixed(2);
-  const pts=v.split('.');pts[0]=pts[0].replace(/\B(?=(\d{3})+(?!\d))/g,'.');
-  document.getElementById('d-valor').value=pts.join(',');
-  document.getElementById('d-data').value=d.data||hj();
-  document.getElementById('d-estab').value=d.estab||'';
-  document.getElementById('d-cidade').value=d.cidade||'';
-  document.getElementById('d-preco-l').value=d.precoL||'';
-  document.getElementById('d-obs').value=d.obs||'';
-  if(d.obs){document.getElementById('d-obs-wrap').style.display='block';document.getElementById('d-obs-link').style.display='none';}
-  // atualiza litros calculados
-  calcAbast();
-  // muda título do modal
-  document.querySelector('#mDespesa .mt').textContent='Editar Despesa';
-  document.getElementById('mViagem').classList.remove('open');
-  document.getElementById('mDespesa').classList.add('open');
 }
 
 function delDesp(id){
@@ -887,8 +850,6 @@ function abrirDespesa(){
     alert('⚠ Inicie a viagem primeiro antes de lançar despesas!');
     return;
   }
-  delete document.getElementById('mDespesa').dataset.editId;
-  document.querySelector('#mDespesa .mt').textContent='Nova Despesa';
   document.getElementById('d-tipo').value='';
   document.getElementById('d-valor').value='';
   document.getElementById('d-data').value=hj();
@@ -928,9 +889,8 @@ function salvarDespesa(){
   if(!tipo){alert('Selecione o tipo de despesa.');return;}
   const vl=getMoeda(document.getElementById('d-valor'));
   if(!vl||vl<=0){alert('Informe o valor.');return;}
-  const editId=document.getElementById('mDespesa').dataset.editId;
-  const dadosDesp={
-    tipo,valor:vl,
+  const desp={
+    id:uid(),tipo,valor:vl,
     data:document.getElementById('d-data').value,
     estab:document.getElementById('d-estab').value.trim(),
     cidade:document.getElementById('d-cidade').value.trim(),
@@ -938,16 +898,7 @@ function salvarDespesa(){
     precoL:parseFloat(document.getElementById('d-preco-l').value)||0,
     obs:document.getElementById('d-obs').value.trim()
   };
-  if(editId){
-    // modo edição — atualiza o existente
-    const idx=vAtual.despesas.findIndex(d=>d.id===editId);
-    if(idx>=0)vAtual.despesas[idx]=Object.assign({id:editId},dadosDesp);
-    delete document.getElementById('mDespesa').dataset.editId;
-    document.querySelector('#mDespesa .mt').textContent='Nova Despesa';
-  } else {
-    // novo lançamento
-    vAtual.despesas.push({id:uid(),...dadosDesp});
-  }
+  vAtual.despesas.push(desp);
   save();fM('mDespesa');
   updViagemModal();
   document.getElementById('mViagem').classList.add('open');
@@ -1077,35 +1028,21 @@ async function fazerLogin(){
   const email=document.getElementById('login-email').value.trim();
   const senha=document.getElementById('login-senha').value;
   const err=document.getElementById('login-err');
-  const btn=document.getElementById('login-btn-action');
   err.classList.remove('show');
   if(!email||!senha){err.textContent='Preencha email e senha.';err.classList.add('show');return;}
-  btn.textContent='⏳ Aguarde...';
-  btn.disabled=true;
   try{
     if(loginTab==='entrar'){
       await auth.signInWithEmailAndPassword(email,senha);
     } else {
       const confirma=document.getElementById('login-confirma').value;
-      if(senha!==confirma){err.textContent='As senhas não coincidem.';err.classList.add('show');btn.disabled=false;btn.textContent='Cadastrar';return;}
-      if(senha.length<6){err.textContent='Senha deve ter pelo menos 6 caracteres.';err.classList.add('show');btn.disabled=false;btn.textContent='Cadastrar';return;}
+      if(senha!==confirma){err.textContent='As senhas não coincidem.';err.classList.add('show');return;}
+      if(senha.length<6){err.textContent='Senha deve ter pelo menos 6 caracteres.';err.classList.add('show');return;}
       await auth.createUserWithEmailAndPassword(email,senha);
     }
   }catch(e){
-    const msgs={
-      'auth/invalid-email':'Email inválido.',
-      'auth/user-not-found':'Usuário não encontrado.',
-      'auth/wrong-password':'Senha incorreta.',
-      'auth/email-already-in-use':'Email já cadastrado.',
-      'auth/weak-password':'Senha muito fraca (mínimo 6 caracteres).',
-      'auth/invalid-credential':'Email ou senha incorretos.',
-      'auth/network-request-failed':'Sem conexão. Verifique sua internet.',
-      'auth/too-many-requests':'Muitas tentativas. Tente novamente em alguns minutos.'
-    };
-    err.textContent=msgs[e.code]||'Erro ('+e.code+'): '+e.message;
+    const msgs={'auth/invalid-email':'Email inválido.','auth/user-not-found':'Usuário não encontrado.','auth/wrong-password':'Senha incorreta.','auth/email-already-in-use':'Email já cadastrado.','auth/weak-password':'Senha muito fraca.','auth/invalid-credential':'Email ou senha incorretos.'};
+    err.textContent=msgs[e.code]||'Erro: '+e.message;
     err.classList.add('show');
-    btn.disabled=false;
-    btn.textContent=loginTab==='entrar'?'Entrar':'Cadastrar';
   }
 }
 
@@ -1131,30 +1068,5 @@ function sair(){
 
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('loginWrap').style.display!=='none')fazerLogin();});
 </script>
-<!-- MODAL REGISTRAR PAGAMENTO -->
-<div class="mbg" id="mPagamento">
-<div class="modal">
-  <div class="mh"></div>
-  <div class="mh-row"><div class="mt">💰 Registrar Pagamento</div><button class="mx" onclick="fM('mPagamento');document.getElementById('mViagem').classList.add('open')">✕</button></div>
-  <div style="background:var(--bg3);border-radius:var(--rs);padding:14px;margin-bottom:16px">
-    <div style="font-size:12px;color:var(--tx3);margin-bottom:4px">Valor a receber</div>
-    <div style="font-size:24px;font-weight:700;color:var(--tl)" id="pag-valor">R$ 0,00</div>
-  </div>
-  <div class="fld"><label>Data do recebimento</label><input type="date" id="pag-data"></div>
-  <div class="fld"><label>Forma de pagamento</label>
-    <select id="pag-forma">
-      <option value="PIX">PIX</option>
-      <option value="Transferência">Transferência</option>
-      <option value="Dinheiro">Dinheiro</option>
-      <option value="Boleto">Boleto</option>
-      <option value="Outros">Outros</option>
-    </select>
-  </div>
-  <div class="fld"><label>Observação (opcional)</label><input type="text" id="pag-obs" placeholder="Ex: Pago pela transportadora X..."></div>
-  <button class="bok" onclick="confirmarPagamento()">✅ Confirmar recebimento</button>
-  <button class="bca" style="width:100%;text-align:center;display:block;margin-top:8px" onclick="fM('mPagamento');document.getElementById('mViagem').classList.add('open')">Cancelar</button>
-</div>
-</div>
-
 </body>
 </html>
